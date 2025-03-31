@@ -1,0 +1,76 @@
+version: 2.1
+
+workflows:                                      #define workflow - sequence of jobs
+  version: 2
+  build:                                        #name of workflow
+    jobs:
+      - build:                                  #first job to run
+          filters:
+            branches:
+              only:
+                - main                          #job will only run on main branch
+      - deploy:                                 #second job to run 
+          filters:
+            branches:
+              only:
+                - main                          #job will only run on main branch
+          requires:
+            - build                             #job will only run if the previous job, build, is succressful
+
+jobs:                                           #define jobs section
+  build:
+    working_directory: ~/contact-server         #set working dir in container to contact-server
+    docker:
+      - image: circleci/node:10.16.3            #docker image
+    steps:
+      - checkout                                #step 1 - checkout code from repo
+      - setup_remote_docker                     #next step - allow docker commands inside job
+      - run:                                    #install specific version of npm
+          name: update-npm
+          command: 'sudo npm install -g npm@5'  #global install of npm v 5
+      - restore_cache:                          #speed up build by restoring cached dependencies
+          key: dependency-cache-{{ checksum "package-lock.json" }}
+      - run:                                    #install npm dependencies
+          name: install-npm-wee
+          command: npm install
+      - save_cache:                             #save node_modules into cache for use in future builds
+          key: dependency-cache-{{ checksum "package-lock.json" }}
+          paths:
+            - ./node_modules
+      - run:                                    #audit installed npm packages for security vulnerabilities
+          name: audit-packages
+          command: npm audit     
+      - run:                                    #run any unit tests defined in npm run test
+          name: test-run
+          command: npm run test
+      - run:                                    #log into docker hub using environment variables stored in circleci
+          name: docker-login
+          command: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - run:                                    #build a docker image using the Dockerfile in the repo
+          name: Build Docker Image
+          command: docker build -t $IMAGE_NAME:latest .
+      - run:                                    #push built docker image to docker hub
+          name: Publish Docker Image
+          command: docker push $IMAGE_NAME
+      - run:                                    #set environment variables and save values into files called server.crt and privatekey.pem
+          name: set-environment-variables
+          command: echo $SERVER > server.crt && echo $PRIVATE_KEY > privatekey.pem
+      - run:                                    #create docker container for integration env
+          name: build-docker-image-for-integration-environment
+          command: docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
+      - run:                                    #copy cert and private key into container
+          name: copy-server-cert-and-private-key-across
+          command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
+      - run:                                    #start the docker container
+          name: start-docker-container
+          command: docker start $CONTAINER_NAME
+      - run:                                    #run security scan using owasp zap against the container
+          name: run-zap-scan-against-container
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t owasp/zap2docker-stable zap-baseline.py -t https://$CONTAINER_IP:8443/math/ad -P 8443
+  deploy:                                       #start of deploy job
+    docker: 
+      - image:  circleci/node:10.16.3
+    steps:
+      - run:
+          name: deploy-application             #ssh into aws ec2 instance, export env variables and run deploy.sh to deploy app
+          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; export IMAGE_NAME=\"$IMAGE_NAME\"; export PRIVATE_KEY=\"$PRIVATE_KEY\"; export CONTAINER_NAME=\"$CONTAINER_NAME\"; rm -rf contact-server/; git clone https://github.com/fn-nci/contact-server.git; source contact-server/deploy.sh"
