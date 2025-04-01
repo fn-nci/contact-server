@@ -59,3 +59,5 @@ A Node.js Express backend server with SQLite database for the Contact Management
 
 - `PORT` - Port to run the server on (default: 4000)
 - `NODE_ENV` - Environment mode (development, production) 
+
+Thank you for reading our code!
