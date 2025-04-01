@@ -9,6 +9,9 @@ ENV NODE_ENV=production
 #set working directory just to be safe
 WORKDIR /contact-server
 
+# make sure user is root to run groupadd
+USER root
+
 # create a non-root user to get around permissions on sqlite3 install
 RUN groupadd -r nodeuser && useradd -r -g nodeuser -m nodeuser
 
