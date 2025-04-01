@@ -28,6 +28,9 @@ RUN npm install
 #copy all content from current directory on host machine to the container
 COPY . .
 
+# set ownership of node_modules and app directory, I think I'm losing the will to live
+RUN chown -R nodeuser:nodeuser /contact-server /node_modules
+
 #default command to run on startup
 CMD [ "npm", "start" ]
 
