@@ -10,7 +10,7 @@ ENV NODE_ENV=production
 COPY ["package.json", "package-lock.json*", "./"]
 
 #install dependencies inside container
-RUN npm install
+RUN sudo npm install
 
 #copy all content from current directory on host machine to the container
 COPY . .
