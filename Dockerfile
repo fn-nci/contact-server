@@ -19,6 +19,9 @@ RUN groupadd -r nodeuser && useradd -r -g nodeuser -m nodeuser
 #before changing the user to non-root
 COPY ["package.json", "package-lock.json*", "./"]
 
+# having root user set ownership of node_modules and app directory before switching to nonroot, I have definitely lost the will to live
+RUN chown -R nodeuser:nodeuser /contact-server /node_modules
+
 # change the user to the non-root user we just created to run the rest of the commands
 USER nodeuser
 
@@ -27,9 +30,6 @@ RUN npm install
 
 #copy all content from current directory on host machine to the container
 COPY . .
-
-# set ownership of node_modules and app directory, I think I'm losing the will to live
-RUN chown -R nodeuser:nodeuser /contact-server /node_modules
 
 #default command to run on startup
 CMD [ "npm", "start" ]
