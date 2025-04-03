@@ -14,7 +14,7 @@ docker build -t contact-server-local:latest .
 # Run the container
 echo "Running the container..."
 docker run -d --name contact-server-local \
-  -p 8444:8444 \
+  -p 8443:8443 \
   contact-server-local:latest
 
 # Check if container is running

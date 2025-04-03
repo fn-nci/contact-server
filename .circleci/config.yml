@@ -54,7 +54,7 @@ jobs: #define jobs section
           command: echo $SERVER > server.crt && echo $PRIVATE_KEY > privatekey.pem
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
-          command: docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
+          command: docker create -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
@@ -63,7 +63,7 @@ jobs: #define jobs section
           command: docker start $CONTAINER_NAME
       - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://$CONTAINER_IP:8444 -P 8444 -I
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8443 -P 8443 -I
   deploy: #start of deploy job
     docker:
       - image: cimg/node:20.17.0 #updated to match build job version
