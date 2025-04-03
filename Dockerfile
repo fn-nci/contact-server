@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 #set the base image for the container
-FROM node:20.9.0-slim
+FROM node:20.17.0-slim
 
 #set environment variable to production
 ENV NODE_ENV=production

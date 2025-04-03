@@ -21,13 +21,13 @@ jobs:                                           #define jobs section
   build:
     working_directory: ~/contact-server         #set working dir in container to contact-server
     docker:
-      - image: cimg/node:20.9.0                 #updated to use a more recent Node.js LTS version
+      - image: cimg/node:20.17.0                #updated to use a version compatible with npm 11.2.0
     steps:
       - checkout                                #step 1 - checkout code from repo
       - setup_remote_docker                     #next step - allow docker commands inside job
       - run:                                    #install specific version of npm
           name: update-npm
-          command: 'sudo npm install -g npm@latest'  #update to latest npm
+          command: 'sudo npm install -g npm@10.5.0'  #use compatible npm version, not latest to avoid version issues
       - restore_cache:                          #speed up build by restoring cached dependencies
           key: dependency-cache-{{ checksum "package-lock.json" }}
       - run:                                    #install npm dependencies
@@ -69,7 +69,7 @@ jobs:                                           #define jobs section
           command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t owasp/zap2docker-stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I
   deploy:                                       #start of deploy job
     docker: 
-      - image: cimg/node:20.9.0                 #updated to use the same updated Node.js image
+      - image: cimg/node:20.17.0                #updated to match build job version
     steps:
       - run:
           name: deploy-application             #ssh into aws ec2 instance, export env variables and run deploy.sh to deploy app
