@@ -57,16 +57,22 @@ jobs: #define jobs section
           command: echo $SERVER > server.crt && echo $PRIVATE_KEY > privatekey.pem
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
-          command: docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
+          command: docker create -p 8080:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
+      - run: #prepare ZAP scan configuration
+          name: prepare-zap-scan
+          command: echo "Waiting for container to fully start..." && sleep 15
+      - run: #check container SSL configuration
+          name: debug-ssl-configuration
+          command: chmod +x ./check-ssl.sh && ./check-ssl.sh $CONTAINER_NAME || true
       - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I -S -d -n zap-scan-config.conf
   deploy: #start of deploy job
     docker:
       - image: cimg/node:20.17.0 #updated to match build job version
