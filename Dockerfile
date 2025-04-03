@@ -16,7 +16,6 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # create a non-root user to get around permissions on sqlite3 install

@@ -5,7 +5,6 @@ const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
 const path = require('path');
 const db = require('./database');
-const setupHttpsServer = require('./setup-https');
 
 const app = express();
 const PORT = process.env.PORT || 8444;
@@ -81,29 +80,20 @@ app.use((err, req, res, next) => {
 // start server
 db.initDatabase()
   .then(() => {
-    // Create HTTP server
     const server = app.listen(PORT, () => {
-      console.log(`HTTP server running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
-
-    // Create HTTPS server
-    const httpsServer = setupHttpsServer(app);
     
     // Graceful shutdown
     process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP and HTTPS servers');
+      console.log('SIGTERM signal received: closing HTTP server');
       server.close(() => {
         console.log('HTTP server closed');
-      });
-      httpsServer.close(() => {
-        console.log('HTTPS server closed');
       });
     });
     
     app.close = function(callback) {
-      server.close(() => {
-        httpsServer.close(callback);
-      });
+      server.close(callback);
     };
   })
   .catch(err => {
