@@ -72,7 +72,7 @@ jobs: #define jobs section
           command: chmod +x ./check-ssl.sh && ./check-ssl.sh $CONTAINER_NAME || true
       - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I -S -d -n zap-scan-config.conf
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I -d --autooff -z "-config certificate.use=true -config certificate.ignore=true"
   deploy: #start of deploy job
     docker:
       - image: cimg/node:20.17.0 #updated to match build job version
