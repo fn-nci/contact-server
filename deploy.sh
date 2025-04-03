@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+
+# Verify environment variables are set
+if [ -z "$IMAGE_NAME" ] || [ -z "$CONTAINER_NAME" ] || [ -z "$SERVER" ] || [ -z "$PRIVATE_KEY" ]; then
+  echo "ERROR: Required environment variables are not set."
+  echo "Required: IMAGE_NAME, CONTAINER_NAME, SERVER, PRIVATE_KEY"
+  exit 1
+fi
+
 # check if there is instance running with the image name we are deploying
 CURRENT_INSTANCE=$(docker ps -a -q --filter ancestor="$IMAGE_NAME" --format="{{.ID}}")
 
