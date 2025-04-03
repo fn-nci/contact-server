@@ -26,6 +26,23 @@ app.use(morgan('dev'));
 
 app.use(csrfProtection);  //add CSRF protection globally
 
+//security headers
+app.use((req, res, next) => {
+  //strict transport security (HSTS)
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  //content security policy (CSP)
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';");
+  
+  //xcontent-type-options
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  //permissions policy
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=()');
+
+  next();
+});
+
 //middleware to set XSRF-TOKEN cookie w/ each response
 app.use(function (req, res, next) {
   res.cookie('XSRF-TOKEN', req.csrfToken(), {
