@@ -28,20 +28,19 @@ app.use(csrfProtection);  // add CSRF protection globally
 //security headers
 app.use((req, res, next) => {
   //strict transport security (HSTS)
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');  
   //content security policy (CSP)
   res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';");
-  
   //xcontent-type-options
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  
   //permissions policy
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), clipboard-read=(), clipboard-write=(), fullscreen=(), payment=(), interest-cohort=()');
   
 
   next();
 });
+
+app.use(csrf({cookie:{key:'XSRF-TOKEN',path:'/', secure: true, httpOnly: true, sameSite: 'lax'}}));
 
 //middleware to set XSRF-TOKEN cookie w/ each response
 app.use(function (req, res, next) {
