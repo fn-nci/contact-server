@@ -46,19 +46,31 @@ else
   echo "No existing container with name $CONTAINER_NAME found."
 fi
 
-#create a container called node_app that is available on port 8444 from our docker image
+#create a container called node_app that is available on ports 8080 and 8443 from our docker image
 echo "Creating new container..."
-docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
+docker create -p 80:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
 
 #write the private key to a file
 echo "Writing private key and certificate files..."
-echo "$PRIVATE_KEY" > privatekey.pem
-echo "$SERVER" > server.crt
+mkdir -p ./certs
+echo "$PRIVATE_KEY" > ./certs/privatekey.pem
+echo "$SERVER" > ./certs/server.crt
+
+# Display file contents for verification (first few lines)
+echo "Verifying certificate files:"
+echo "Private key (first 3 lines):"
+head -3 ./certs/privatekey.pem || echo "Failed to read private key"
+echo "Certificate (first 3 lines):"
+head -3 ./certs/server.crt || echo "Failed to read certificate"
 
 #add the private key and cert to the container
 echo "Copying certificate files to container..."
-docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem
-docker cp ./server.crt $CONTAINER_NAME:/server.crt
+docker cp ./certs/privatekey.pem $CONTAINER_NAME:/privatekey.pem
+docker cp ./certs/server.crt $CONTAINER_NAME:/server.crt
+
+# Verify files were copied correctly
+echo "Verifying certificate files in container:"
+docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt || echo "Files not found in container"
 
 #start the node_app container
 echo "Starting container..."

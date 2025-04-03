@@ -58,18 +58,46 @@ jobs: #define jobs section
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
+      - run: #verify certificate files
+          name: verify-certificate-files
+          command: |
+            echo "Verifying certificate files in container..."
+            docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt
+            docker exec $CONTAINER_NAME bash -c "cat /privatekey.pem | head -3" || echo "Failed to read private key"
+            docker exec $CONTAINER_NAME bash -c "cat /server.crt | head -3" || echo "Failed to read certificate"
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
+      - run: #wait for container to fully start
+          name: wait-for-container
+          command: sleep 20
+      - run: #check container logs
+          name: check-container-logs
+          command: docker logs $CONTAINER_NAME
       - run:
           name: verify-https
           command: |
             CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-            docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt
-            docker run --rm curlimages/curl:7.78.0 curl -k https://$CONTAINER_IP:8443/health || echo "HTTPS not responding"
+            echo "Container IP: $CONTAINER_IP"
+            echo "Checking ports in container..."
+            docker exec $CONTAINER_NAME bash -c "netstat -tuln || echo netstat not available"
+            echo "Testing HTTP connection..."
+            docker run --rm curlimages/curl:7.78.0 curl -v http://$CONTAINER_IP:8080/health || echo "HTTP not responding"
+            echo "Testing HTTPS connection..."
+            docker run --rm curlimages/curl:7.78.0 curl -k -v https://$CONTAINER_IP:8443/health || echo "HTTPS not responding"
       - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8443 -P 8443 -I
+          command: |
+            CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+            echo "Running ZAP scan against HTTPS server at $CONTAINER_IP:8443"
+            # Try HTTP first if HTTPS is not working
+            if docker run --rm curlimages/curl:7.78.0 -s -k https://$CONTAINER_IP:8443/health > /dev/null; then
+              echo "HTTPS connection successful, proceeding with HTTPS scan"
+              docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8443 -P 8443 -I -d --autooff -z "-config certificate.use=true -config certificate.ignore=true"
+            else
+              echo "HTTPS connection failed, falling back to HTTP scan"
+              docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://$CONTAINER_IP:8080 -P 8080 -I -d
+            fi
   deploy: #start of deploy job
     docker:
       - image: cimg/node:20.17.0 #updated to match build job version

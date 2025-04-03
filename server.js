@@ -89,12 +89,23 @@ db.initDatabase()
     
     // Create HTTPS server
     try {
+      console.log('Attempting to set up HTTPS server...');
+      console.log('Checking for certificate files:');
+      console.log('Private key exists:', fs.existsSync('/privatekey.pem'));
+      console.log('Certificate exists:', fs.existsSync('/server.crt'));
+      
+      if (!fs.existsSync('/privatekey.pem') || !fs.existsSync('/server.crt')) {
+        throw new Error('Certificate files not found at expected paths');
+      }
+      
       const httpsOptions = {
         key: fs.readFileSync('/privatekey.pem'),
         cert: fs.readFileSync('/server.crt')
       };
       
-      const httpsServer = https.createServer(httpsOptions, app).listen(8443, () => {
+      console.log('SSL certificate files loaded successfully');
+      
+      const httpsServer = https.createServer(httpsOptions, app).listen(8443, '0.0.0.0', () => {
         console.log(`HTTPS server running on port 8443`);
       });
       
@@ -112,6 +123,8 @@ db.initDatabase()
       };
     } catch (error) {
       console.error('Failed to start HTTPS server:', error);
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
       // Fall back to HTTP only in case of HTTPS setup failure
     }
   })
