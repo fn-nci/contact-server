@@ -66,7 +66,7 @@ jobs:                                           #define jobs section
           command: docker start $CONTAINER_NAME
       - run:                                    #run security scan using zap-baseline 
           name: run-zap-scan-against-container
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t owasp/zap2docker-stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I
   deploy:                                       #start of deploy job
     docker: 
       - image: cimg/node:20.17.0                #updated to match build job version
