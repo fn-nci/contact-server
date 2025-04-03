@@ -66,7 +66,7 @@ jobs:                                           #define jobs section
           command: docker start $CONTAINER_NAME
       - run:                                    #run security scan using owasp zap against the container, putting no check cert just to be safe
           name: run-zap-scan-against-container  #owasp no longer used by zap, y'all need to update your teaching material
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t zaproxy/zap-stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 --no-check-certificate
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t zaproxy/zap-stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444
   deploy:                                       #start of deploy job
     docker: 
       - image:  circleci/node:10.16.3
