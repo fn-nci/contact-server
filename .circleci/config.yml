@@ -83,13 +83,16 @@ jobs: #define jobs section
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: |
+            # Use docker cp with permission preservation
             docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem
             docker cp ./server.crt $CONTAINER_NAME:/server.crt
-            # Fix permissions inside the container
-            docker exec $CONTAINER_NAME sh -c "chmod 644 /privatekey.pem /server.crt && chown nodeuser:nodeuser /privatekey.pem /server.crt"
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
+      - run: #fix permissions inside the container after it starts
+          name: fix-certificate-permissions
+          command: |
+            docker exec $CONTAINER_NAME sh -c "chmod 644 /privatekey.pem /server.crt && chown nodeuser:nodeuser /privatekey.pem /server.crt"
       - run: #wait for container to fully start
           name: wait-for-container
           command: sleep 10

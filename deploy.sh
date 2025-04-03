@@ -69,7 +69,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout ./certs/privatekey.pem -out ./certs/server.crt \
   -subj "/CN=localhost"
 
-# Ensure proper permissions 
+# Ensure proper permissions on host
 chmod 644 ./certs/privatekey.pem ./certs/server.crt
 
 # Display file contents for verification (first few lines)
@@ -85,7 +85,12 @@ echo "Copying certificate files to container..."
 docker cp ./certs/privatekey.pem $CONTAINER_NAME:/privatekey.pem
 docker cp ./certs/server.crt $CONTAINER_NAME:/server.crt
 
-# Fix permissions inside the container (make readable by all)
+#start the node_app container
+echo "Starting container..."
+docker start $CONTAINER_NAME
+
+# Now that the container is started, fix permissions inside
+echo "Fixing certificate permissions inside container..."
 docker exec $CONTAINER_NAME sh -c "chmod 644 /privatekey.pem /server.crt && ls -la /privatekey.pem /server.crt"
 
 # Verify files were copied correctly
@@ -93,9 +98,5 @@ echo "Verifying certificate files in container:"
 docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt || echo "Files not found in container"
 docker exec $CONTAINER_NAME bash -c "cat /privatekey.pem | head -3" || echo "Failed to read private key"
 docker exec $CONTAINER_NAME bash -c "cat /server.crt | head -3" || echo "Failed to read certificate"
-
-#start the node_app container
-echo "Starting container..."
-docker start $CONTAINER_NAME
 
 echo "=== Deployment completed successfully ==="

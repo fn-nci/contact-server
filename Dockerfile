@@ -47,13 +47,17 @@ RUN mkdir -p /certs && \
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /privatekey.pem -out /server.crt \
     -subj "/CN=localhost" && \
+    # Make sure the files have read permissions for all users 
     chmod 644 /privatekey.pem /server.crt && \
+    # Make nodeuser the owner
     chown nodeuser:nodeuser /privatekey.pem /server.crt && \
-    # Make sure the files have read permissions for all users
-    chmod 644 /privatekey.pem /server.crt && \
-    # Verify the files and permissions
+    # Make sure the parent directories are also accessible
+    chmod 755 $(dirname /privatekey.pem) $(dirname /server.crt) && \
+    # Verify permissions
     ls -la /privatekey.pem /server.crt && \
     cat /privatekey.pem | head -3 && cat /server.crt | head -3
+
+# Switch back to nodeuser for running the application
 USER nodeuser
 
 # Expose ports the app will run on
