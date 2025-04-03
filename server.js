@@ -18,13 +18,12 @@ const corsOptions = {
 
 //middleware
 app.disable('x-powered-by');
+app.use(morgan('dev'));
 app.use(cors(corsOptions)); // enable CORS with the specified options
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(morgan('dev'));
-
-app.use(csrfProtection);  //add CSRF protection globally
+app.use(csrfProtection);  // add CSRF protection globally
 
 //security headers
 app.use((req, res, next) => {
