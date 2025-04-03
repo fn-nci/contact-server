@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const xss = require('xss');  //for input sanitization to prevent xss attacks
+const csrf = require('csurf');  //csrf protection
+const csrfProtection = csrf({ cookie: true });
 
-// security headers middleware to defend against various attacks
+
+//security headers middleware to defend against different types of attack
 const setSecurityHeaders = (req, res, next) => {
   res.set('X-Frame-Options', 'DENY');   // prevent clickjacking by not allowing page to be embedded in iframe
   res.set('X-Content-Type-Options', 'nosniff'); //prevent MIME-sniffing by browsers
@@ -15,6 +19,23 @@ const setSecurityHeaders = (req, res, next) => {
 
 //apply security headers middleware to all routes
 router.use(setSecurityHeaders);
+router.use(csrfProtection);
+
+// variable sanitizing input - to strip out anything that might be suspect, like changing & to &amp or removing <script>
+const sanitizeInput = (req, res, next) => {
+  if (req.body) {
+    //parameters
+    req.body.firstname = xss(req.body.firstname);
+    req.body.lastname = xss(req.body.lastname);
+    req.body.email = xss(req.body.email);
+    req.body.homephone = xss(req.body.homephone);
+    req.body.mobile = xss(req.body.mobile);
+    req.body.address = xss(req.body.address);
+    req.body.birthday = xss(req.body.birthday);
+  }
+  next();
+};
+
 
 //get all contacts 
 router.get('/', async (req, res, next) => {
@@ -25,6 +46,7 @@ router.get('/', async (req, res, next) => {
     next(error);
   }
 });
+
 
 //get a single contact
 router.get('/:id', async (req, res, next) => {
@@ -40,8 +62,8 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-//post new contact
-router.post('/', async (req, res, next) => {
+//post new contact - sanitizing input
+router.post('/', sanitizeInput, async (req, res, next) => {
   try {
     const { firstname, lastname, email, homephone, mobile, address, birthday } = req.body;
     //checking for required fields, returning error if they are blank
@@ -61,8 +83,8 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-//put/update a contact
-router.put('/:id', async (req, res, next) => {
+//put/update a contact - with sanitized input
+router.put('/:id', sanitizeInput, async (req, res, next) => {
   try {
     const { firstname, lastname, email, homephone, mobile, address, birthday } = req.body;
     const contactId = req.params.id;
