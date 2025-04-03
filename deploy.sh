@@ -48,7 +48,7 @@ fi
 
 #create a container called node_app that is available on port 8444 from our docker image
 echo "Creating new container..."
-docker create -p 80:8080 -p 8443:8444 --name $CONTAINER_NAME $IMAGE_NAME
+docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
 
 #write the private key to a file
 echo "Writing private key and certificate files..."

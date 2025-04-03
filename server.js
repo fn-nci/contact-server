@@ -7,7 +7,7 @@ const path = require('path');
 const db = require('./database');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 8444;
 const csrfProtection = csrf({ cookie: true });  // initialize CSRF protection middleware w/ cookie-based tokens
 
 //allow requests from frontend and allow cookies

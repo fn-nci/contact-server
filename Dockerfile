@@ -12,6 +12,11 @@ WORKDIR /contact-server
 # make sure user is root to run groupadd
 USER root
 
+# Install basic utilities and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # create a non-root user to get around permissions on sqlite3 install
 RUN groupadd -r nodeuser && useradd -r -g nodeuser -m nodeuser
 
@@ -25,11 +30,16 @@ RUN chown -R nodeuser:nodeuser /contact-server
 # change the user to the non-root user we just created to run the rest of the commands
 USER nodeuser
 
-#install dependencies inside container as none root user so taking out the sudo
-RUN npm install --production
+# Clear npm cache and install dependencies 
+RUN npm cache clean --force && \
+    npm install --production --no-cache
 
 # Copy only necessary files (excluding .git, node_modules, etc.)
 COPY --chown=nodeuser:nodeuser . .
+
+# Add a simple health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose ports the app will run on
 EXPOSE 8080 8444
