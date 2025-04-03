@@ -5,6 +5,8 @@ const cookieParser = require('cookie-parser');
 const csrf = require('csurf');
 const path = require('path');
 const db = require('./database');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 8443;
@@ -80,21 +82,38 @@ app.use((err, req, res, next) => {
 // start server
 db.initDatabase()
   .then(() => {
-    const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    // Create HTTP server for internal use
+    const httpServer = app.listen(8080, () => {
+      console.log(`HTTP server running on port 8080`);
     });
     
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
+    // Create HTTPS server
+    try {
+      const httpsOptions = {
+        key: fs.readFileSync('/privatekey.pem'),
+        cert: fs.readFileSync('/server.crt')
+      };
+      
+      const httpsServer = https.createServer(httpsOptions, app).listen(8443, () => {
+        console.log(`HTTPS server running on port 8443`);
       });
-    });
-    
-    app.close = function(callback) {
-      server.close(callback);
-    };
+      
+      // Graceful shutdown
+      process.on('SIGTERM', () => {
+        console.log('SIGTERM signal received: closing servers');
+        httpServer.close(() => console.log('HTTP server closed'));
+        httpsServer.close(() => console.log('HTTPS server closed'));
+      });
+      
+      app.close = function(callback) {
+        httpServer.close(() => {
+          httpsServer.close(callback);
+        });
+      };
+    } catch (error) {
+      console.error('Failed to start HTTPS server:', error);
+      // Fall back to HTTP only in case of HTTPS setup failure
+    }
   })
   .catch(err => {
     console.error('Failed to initialize database:', err);

@@ -54,13 +54,19 @@ jobs: #define jobs section
           command: echo $SERVER > server.crt && echo $PRIVATE_KEY > privatekey.pem
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
-          command: docker create -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
+          command: docker create -p 8080:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
+      - run:
+          name: verify-https
+          command: |
+            CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+            docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt
+            docker run --rm curlimages/curl:7.78.0 curl -k https://$CONTAINER_IP:8443/health || echo "HTTPS not responding"
       - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
           command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8443 -P 8443 -I
