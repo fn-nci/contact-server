@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     net-tools \
     netcat-openbsd \
     procps \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # create a non-root user to get around permissions on sqlite3 install
@@ -40,11 +41,15 @@ RUN npm install --production
 # Copy only necessary files (excluding .git, node_modules, etc.)
 COPY --chown=nodeuser:nodeuser . .
 
-# Create placeholder for certificate files
+# Create self-signed certificates for development/testing
 USER root
-RUN touch /privatekey.pem /server.crt && \
+RUN mkdir -p /certs && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /privatekey.pem -out /server.crt \
+    -subj "/CN=localhost" && \
     chmod 644 /privatekey.pem /server.crt && \
-    chown nodeuser:nodeuser /privatekey.pem /server.crt
+    chown nodeuser:nodeuser /privatekey.pem /server.crt && \
+    cat /privatekey.pem | head -3 && cat /server.crt | head -3
 USER nodeuser
 
 # Expose ports the app will run on

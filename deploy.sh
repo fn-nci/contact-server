@@ -12,9 +12,9 @@ echo "User: $(whoami)"
 echo "Docker status: $(docker info 2>&1 | grep 'Server Version' || echo 'Docker not available')"
 
 # Verify environment variables are set
-if [ -z "${IMAGE_NAME:-}" ] || [ -z "${CONTAINER_NAME:-}" ] || [ -z "${SERVER:-}" ] || [ -z "${PRIVATE_KEY:-}" ]; then
+if [ -z "${IMAGE_NAME:-}" ] || [ -z "${CONTAINER_NAME:-}" ]; then
   echo "ERROR: Required environment variables are not set."
-  echo "Required: IMAGE_NAME, CONTAINER_NAME, SERVER, PRIVATE_KEY"
+  echo "Required: IMAGE_NAME, CONTAINER_NAME"
   exit 1
 fi
 
@@ -50,18 +50,24 @@ fi
 echo "Creating new container..."
 docker create -p 80:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
 
-#write the private key to a file
-echo "Writing private key and certificate files..."
+# Generate self-signed certificates for testing
+echo "Creating certificate files..."
 mkdir -p ./certs
 
-# Ensure certificates have proper BEGIN/END markers
-echo "-----BEGIN CERTIFICATE-----" > ./certs/server.crt
-echo "$SERVER" >> ./certs/server.crt
-echo "-----END CERTIFICATE-----" >> ./certs/server.crt
+# Install OpenSSL if not available
+if ! command -v openssl &> /dev/null; then
+  echo "OpenSSL not found, attempting to install..."
+  apt-get update && apt-get install -y openssl || yum install -y openssl || {
+    echo "Failed to install OpenSSL. Please install it manually."
+    exit 1
+  }
+fi
 
-echo "-----BEGIN PRIVATE KEY-----" > ./certs/privatekey.pem
-echo "$PRIVATE_KEY" >> ./certs/privatekey.pem
-echo "-----END PRIVATE KEY-----" >> ./certs/privatekey.pem
+# Create self-signed certificate
+echo "Generating self-signed certificate..."
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout ./certs/privatekey.pem -out ./certs/server.crt \
+  -subj "/CN=localhost"
 
 # Display file contents for verification (first few lines)
 echo "Verifying certificate files:"

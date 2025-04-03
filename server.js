@@ -98,9 +98,16 @@ db.initDatabase()
         throw new Error('Certificate files not found at expected paths');
       }
       
+      // Read the files and log the first few characters to debug
+      const keyContent = fs.readFileSync('/privatekey.pem', 'utf8');
+      const certContent = fs.readFileSync('/server.crt', 'utf8');
+      
+      console.log('Private key starts with:', keyContent.substring(0, 50));
+      console.log('Certificate starts with:', certContent.substring(0, 50));
+      
       const httpsOptions = {
-        key: fs.readFileSync('/privatekey.pem'),
-        cert: fs.readFileSync('/server.crt')
+        key: keyContent,
+        cert: certContent
       };
       
       console.log('SSL certificate files loaded successfully');

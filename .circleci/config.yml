@@ -49,23 +49,32 @@ jobs: #define jobs section
       - run: #push built docker image to docker hub
           name: Publish Docker Image
           command: docker push $IMAGE_NAME
-      - run: #set environment variables and save values into files called server.crt and privatekey.pem
+      - run: #set environment variables and save values into files called server.crt and privatekey.pem with proper formatting
           name: set-environment-variables
           command: |
-            echo "-----BEGIN CERTIFICATE-----" > server.crt
-            echo "$SERVER" >> server.crt
-            echo "-----END CERTIFICATE-----" >> server.crt
+            echo "Creating certificate files..."
+
+            # Generate self-signed certificates for testing
+            mkdir -p ./certs
+            echo "Installing OpenSSL for certificate generation"
+            sudo apt-get update && sudo apt-get install -y openssl
+
+            # Create self-signed certificate
+            echo "Generating self-signed certificate..."
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+              -keyout ./certs/privatekey.pem -out ./certs/server.crt \
+              -subj "/CN=localhost"
             
-            echo "-----BEGIN PRIVATE KEY-----" > privatekey.pem
-            echo "$PRIVATE_KEY" >> privatekey.pem
-            echo "-----END PRIVATE KEY-----" >> privatekey.pem
+            # Copy to expected locations
+            cp ./certs/privatekey.pem privatekey.pem
+            cp ./certs/server.crt server.crt
             
             # Verify the files have the correct format
             echo "Verifying certificate files format:"
-            head -1 server.crt
-            tail -1 server.crt
-            head -1 privatekey.pem
-            tail -1 privatekey.pem
+            head -3 server.crt
+            tail -3 server.crt
+            head -3 privatekey.pem
+            tail -3 privatekey.pem
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
           command: docker create -p 8080:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
