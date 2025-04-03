@@ -29,3 +29,7 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db 
+
+# ignore certs and pem
+*.pem
+*.crt

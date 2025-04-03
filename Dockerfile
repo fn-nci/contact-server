@@ -66,7 +66,7 @@ RUN mkdir -p /contact-server/certs && \
 USER nodeuser
 
 # Expose ports the app will run on
-EXPOSE 8080 8443
+EXPOSE 8080 8444
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \

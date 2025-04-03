@@ -9,12 +9,12 @@ const https = require('https');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 8443;
+const PORT = process.env.PORT || 8444;
 const csrfProtection = csrf({ cookie: true });  // initialize CSRF protection middleware w/ cookie-based tokens
 
 //allow requests from frontend and allow cookies
 const corsOptions = {
-  origin: 'https://34.241.85.158:8443', //specify url where frontend deployed
+  origin: 'https://34.241.85.158:8443', //specify url where frontend deployed, updated port
   credentials: true, //allow cookies (incl. CSRF tokens) to be sent with requests
 };
 
@@ -175,8 +175,8 @@ db.initDatabase()
       
       console.log('SSL certificate files loaded successfully');
       
-      const httpsServer = https.createServer(httpsOptions, app).listen(8443, '0.0.0.0', () => {
-        console.log(`HTTPS server running on port 8443`);
+      const httpsServer = https.createServer(httpsOptions, app).listen(8444, '0.0.0.0', () => {
+        console.log(`HTTPS server running on port 8444`);
       });
       
       // Graceful shutdown

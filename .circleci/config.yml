@@ -79,7 +79,7 @@ jobs: #define jobs section
             tail -3 privatekey.pem
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
-          command: docker create -p 8080:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
+          command: docker create -p 8080:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: |
@@ -114,16 +114,16 @@ jobs: #define jobs section
             echo "Testing HTTP connection..."
             docker run --rm curlimages/curl:7.78.0 curl -v http://$CONTAINER_IP:8080/health || echo "HTTP not responding"
             echo "Testing HTTPS connection..."
-            docker run --rm curlimages/curl:7.78.0 curl -k -v https://$CONTAINER_IP:8443/health || echo "HTTPS not responding"
+            docker run --rm curlimages/curl:7.78.0 curl -k -v https://$CONTAINER_IP:8444/health || echo "HTTPS not responding"
       - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
           command: |
             CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-            echo "Running ZAP scan against HTTPS server at $CONTAINER_IP:8443"
+            echo "Running ZAP scan against HTTPS server at $CONTAINER_IP:8444"
             # Try HTTP first if HTTPS is not working
-            if docker run --rm curlimages/curl:7.78.0 -s -k https://$CONTAINER_IP:8443/health > /dev/null; then
+            if docker run --rm curlimages/curl:7.78.0 -s -k https://$CONTAINER_IP:8444/health > /dev/null; then
               echo "HTTPS connection successful, proceeding with HTTPS scan"
-              docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8443 -P 8443 -I -d --autooff -z "-config certificate.use=true -config certificate.ignore=true"
+              docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I -d --autooff -z "-config certificate.use=true -config certificate.ignore=true"
             else
               echo "HTTPS connection failed, falling back to HTTP scan"
               docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://$CONTAINER_IP:8080 -P 8080 -I -d

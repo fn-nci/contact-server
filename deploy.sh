@@ -46,9 +46,9 @@ else
   echo "No existing container with name $CONTAINER_NAME found."
 fi
 
-#create a container called node_app that is available on ports 8080 and 8443 from our docker image
+#create a container called node_app that is available on ports 8080 and 8444 from our docker image
 echo "Creating new container..."
-docker create -p 80:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
+docker create -p 80:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
 
 # Generate self-signed certificates for testing
 echo "Creating certificate files..."
