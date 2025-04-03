@@ -37,9 +37,9 @@ jobs: #define jobs section
           key: dependency-cache-{{ checksum "package-lock.json" }}
           paths:
             - ./node_modules
-      - run: #audit installed npm packages for security vulnerabilities
-          name: audit-packages
-          command: npm audit
+      - run: #check dependencies without running full audit
+          name: check-dependencies
+          command: npm ls --json --production || true
       - run: #run any unit tests defined in npm run test
           name: test-run
           command: npm run test

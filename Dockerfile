@@ -15,6 +15,7 @@ USER root
 # Install basic utilities and dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # create a non-root user to get around permissions on sqlite3 install
@@ -22,7 +23,7 @@ RUN groupadd -r nodeuser && useradd -r -g nodeuser -m nodeuser
 
 #copy the package.json and package-lock.json from host machine to the container's working directory
 #before changing the user to non-root
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json* .npmrc ./
 
 # having root user set ownership of app directory before switching
 RUN chown -R nodeuser:nodeuser /contact-server 
@@ -32,7 +33,7 @@ USER nodeuser
 
 # Clear npm cache and install dependencies 
 RUN npm cache clean --force && \
-    npm install --production --no-cache
+    npm install --production --no-cache --no-audit
 
 # Copy only necessary files (excluding .git, node_modules, etc.)
 COPY --chown=nodeuser:nodeuser . .

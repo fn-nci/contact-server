@@ -36,7 +36,8 @@ fi
 echo "Pulling latest image from Docker Hub: $IMAGE_NAME"
 docker pull $IMAGE_NAME
 
-#check if a docker container exists with the name of node_app if it does remove the container
+# CONTAINER_NAME -> contact_server
+#check if a docker container exists with the name of contact_server if it does remove the container
 echo "Checking for existing container with name: $CONTAINER_NAME"
 CONTAINER_EXISTS=$(docker ps -a | grep $CONTAINER_NAME || echo "")
 if [ -n "$CONTAINER_EXISTS" ]; then
@@ -46,7 +47,7 @@ else
   echo "No existing container with name $CONTAINER_NAME found."
 fi
 
-#create a container called node_app that is available on port 8444 from our docker image
+#create a container called contact_server that is available on port 8444 from our docker image
 echo "Creating new container..."
 docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
 
@@ -60,7 +61,7 @@ echo "Copying certificate files to container..."
 docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem
 docker cp ./server.crt $CONTAINER_NAME:/server.crt
 
-#start the node_app container
+#start the contact_server container
 echo "Starting container..."
 docker start $CONTAINER_NAME
 
