@@ -53,7 +53,7 @@ A Node.js Express backend server with SQLite database for the Contact Management
    npm run dev
    ```
 
-3. The server will run on port 4000 by default (http://localhost:4000)
+3. The server will run on port 4000 by default (http://localhost:4000) during development, and on port 8444 when deployed
 
 ## Environment Variables
 
