@@ -2,7 +2,21 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 
-// GET all contacts
+// security headers middleware to defend against various attacks
+const setSecurityHeaders = (req, res, next) => {
+  res.set('X-Frame-Options', 'DENY');   // prevent clickjacking by not allowing page to be embedded in iframe
+  res.set('X-Content-Type-Options', 'nosniff'); //prevent MIME-sniffing by browsers
+  res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');   //tell browser to only communicate over HTTPS, all subdomains, 1 year
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate'); //disable caching of sensitive data to prevent caching attacks
+  //control sources from which resources can be loaded, only allows scripts, images, styles to be loaded from same origin (self)
+  res.set('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+  next();
+};
+
+//apply security headers middleware to all routes
+router.use(setSecurityHeaders);
+
+//get all contacts 
 router.get('/', async (req, res, next) => {
   try {
     const contacts = await db.all('SELECT * FROM contacts ORDER BY lastname, firstname');
@@ -12,118 +26,85 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// GET a single contact
+//get a single contact
 router.get('/:id', async (req, res, next) => {
   try {
     const contact = await db.get('SELECT * FROM contacts WHERE id = ?', [req.params.id]);
-    
+    //return error if contact doesn't exist
     if (!contact) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Contact not found' 
-      });
+      return res.status(404).json({ success: false, message: 'Contact not found' });
     }
-    
     res.json(contact);
   } catch (error) {
     next(error);
   }
 });
 
-// POST a new contact
+//post new contact
 router.post('/', async (req, res, next) => {
   try {
     const { firstname, lastname, email, homephone, mobile, address, birthday } = req.body;
-    
-    // Validation
+    //checking for required fields, returning error if they are blank
     if (!firstname || !lastname || !email) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'First name, last name and email are required' 
-      });
+      return res.status(400).json({ success: false, message: 'First name, last name and email are required' });
     }
-    
     const result = await db.run(
-      `INSERT INTO contacts 
-       (firstname, lastname, email, homephone, mobile, address, birthday) 
+      `INSERT INTO contacts (firstname, lastname, email, homephone, mobile, address, birthday) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [firstname, lastname, email, homephone || null, mobile || null, address || null, birthday || null]
     );
-    
+
     const newContact = await db.get('SELECT * FROM contacts WHERE id = ?', [result.id]);
-    
     res.status(201).json(newContact);
   } catch (error) {
     next(error);
   }
 });
 
-// PUT (update) a contact
+//put/update a contact
 router.put('/:id', async (req, res, next) => {
   try {
     const { firstname, lastname, email, homephone, mobile, address, birthday } = req.body;
     const contactId = req.params.id;
-    
-    // Validation
+    //validatoin
     if (!firstname || !lastname || !email) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'First name, last name and email are required' 
-      });
+      return res.status(400).json({ success: false, message: 'First name, last name and email are required' });
     }
-    
-    // Check if contact exists
+    //check if contact exists
     const existingContact = await db.get('SELECT * FROM contacts WHERE id = ?', [contactId]);
-    
     if (!existingContact) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Contact not found' 
-      });
+      return res.status(404).json({ success: false, message: 'Contact not found' });
     }
-    
+
     await db.run(
       `UPDATE contacts 
-       SET firstname = ?, lastname = ?, email = ?, 
-           homephone = ?, mobile = ?, address = ?, 
-           birthday = ?, updated_at = CURRENT_TIMESTAMP
+       SET firstname = ?, lastname = ?, email = ?, homephone = ?, mobile = ?, address = ?, birthday = ? 
        WHERE id = ?`,
-      [firstname, lastname, email, homephone || null, mobile || null, 
-       address || null, birthday || null, contactId]
+      [firstname, lastname, email, homephone || null, mobile || null, address || null, birthday || null, contactId]
     );
-    
+
     const updatedContact = await db.get('SELECT * FROM contacts WHERE id = ?', [contactId]);
-    
     res.json(updatedContact);
   } catch (error) {
     next(error);
   }
 });
 
-// DELETE a contact
+//delete a contact
 router.delete('/:id', async (req, res, next) => {
   try {
     const contactId = req.params.id;
-    
-    // Check if contact exists
     const existingContact = await db.get('SELECT * FROM contacts WHERE id = ?', [contactId]);
-    
-    if (!existingContact) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Contact not found' 
-      });
+    //check if contact exists
+    if (!existingContact) {    //return error if contact doesn't exist
+      return res.status(404).json({ success: false, message: 'Contact not found' });
     }
-    
+
     await db.run('DELETE FROM contacts WHERE id = ?', [contactId]);
-    
-    res.json({ 
-      success: true, 
-      message: 'Contact deleted successfully'
-    });
+    res.json({ success: true, message: 'Contact deleted successfully' });
   } catch (error) {
     next(error);
   }
 });
 
-module.exports = router; 
+module.exports = router;

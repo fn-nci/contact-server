@@ -1,0 +1,11 @@
+# https://www.robotstxt.org/robotstxt.html
+
+# tell all web crawlers (*) that this applies to them
+User-agent: * 
+
+# grant access to entire site
+Allow: /
+
+# give location of sitemap to help with indexing
+Sitemap: /sitemap_index.xml
+
