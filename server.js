@@ -79,6 +79,43 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Helper function to safely read a file with proper error handling
+function safeReadFile(filePath) {
+  try {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error(`File does not exist: ${filePath}`);
+      return null;
+    }
+    
+    // Check file permissions
+    try {
+      const stats = fs.statSync(filePath);
+      console.log(`File permissions for ${filePath}:`, {
+        mode: stats.mode.toString(8),
+        uid: stats.uid,
+        gid: stats.gid,
+        readable: Boolean(stats.mode & fs.constants.R_OK)
+      });
+    } catch (statErr) {
+      console.error(`Could not check file permissions: ${statErr.message}`);
+    }
+    
+    // Try to read the file
+    return fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error.message);
+    // Print current user and process information
+    try {
+      console.error('Process running as:', process.getuid && process.getuid());
+      console.error('Process groups:', process.getgroups && process.getgroups());
+    } catch (e) {
+      console.error('Could not get process user info:', e.message);
+    }
+    return null;
+  }
+}
+
 // start server
 db.initDatabase()
   .then(() => {
@@ -91,16 +128,41 @@ db.initDatabase()
     try {
       console.log('Attempting to set up HTTPS server...');
       console.log('Checking for certificate files:');
-      console.log('Private key exists:', fs.existsSync('/privatekey.pem'));
-      console.log('Certificate exists:', fs.existsSync('/server.crt'));
       
-      if (!fs.existsSync('/privatekey.pem') || !fs.existsSync('/server.crt')) {
-        throw new Error('Certificate files not found at expected paths');
+      // Check file existence
+      const privateKeyPath = '/privatekey.pem';
+      const certPath = '/server.crt';
+      
+      console.log('Private key exists:', fs.existsSync(privateKeyPath));
+      console.log('Certificate exists:', fs.existsSync(certPath));
+      
+      // Check file ownership and permissions
+      try {
+        const keyStats = fs.statSync(privateKeyPath);
+        const certStats = fs.statSync(certPath);
+        
+        console.log('Private key stats:', {
+          mode: keyStats.mode.toString(8),
+          uid: keyStats.uid,
+          gid: keyStats.gid
+        });
+        
+        console.log('Certificate stats:', {
+          mode: certStats.mode.toString(8),
+          uid: certStats.uid,
+          gid: certStats.gid
+        });
+      } catch (err) {
+        console.error('Error checking file stats:', err.message);
       }
       
-      // Read the files and log the first few characters to debug
-      const keyContent = fs.readFileSync('/privatekey.pem', 'utf8');
-      const certContent = fs.readFileSync('/server.crt', 'utf8');
+      // Safely read the certificate files
+      const keyContent = safeReadFile(privateKeyPath);
+      const certContent = safeReadFile(certPath);
+      
+      if (!keyContent || !certContent) {
+        throw new Error('Failed to read certificate files');
+      }
       
       console.log('Private key starts with:', keyContent.substring(0, 50));
       console.log('Certificate starts with:', certContent.substring(0, 50));

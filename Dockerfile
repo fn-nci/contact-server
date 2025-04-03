@@ -49,6 +49,10 @@ RUN mkdir -p /certs && \
     -subj "/CN=localhost" && \
     chmod 644 /privatekey.pem /server.crt && \
     chown nodeuser:nodeuser /privatekey.pem /server.crt && \
+    # Make sure the files have read permissions for all users
+    chmod 644 /privatekey.pem /server.crt && \
+    # Verify the files and permissions
+    ls -la /privatekey.pem /server.crt && \
     cat /privatekey.pem | head -3 && cat /server.crt | head -3
 USER nodeuser
 

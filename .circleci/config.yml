@@ -65,12 +65,14 @@ jobs: #define jobs section
               -keyout ./certs/privatekey.pem -out ./certs/server.crt \
               -subj "/CN=localhost"
             
-            # Copy to expected locations
+            # Copy to expected locations with correct permissions
             cp ./certs/privatekey.pem privatekey.pem
             cp ./certs/server.crt server.crt
+            chmod 644 privatekey.pem server.crt
             
-            # Verify the files have the correct format
+            # Verify the files have the correct format and permissions
             echo "Verifying certificate files format:"
+            ls -la privatekey.pem server.crt
             head -3 server.crt
             tail -3 server.crt
             head -3 privatekey.pem
@@ -80,7 +82,11 @@ jobs: #define jobs section
           command: docker create -p 8080:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
-          command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
+          command: |
+            docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem
+            docker cp ./server.crt $CONTAINER_NAME:/server.crt
+            # Fix permissions inside the container
+            docker exec $CONTAINER_NAME sh -c "chmod 644 /privatekey.pem /server.crt && chown nodeuser:nodeuser /privatekey.pem /server.crt"
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
