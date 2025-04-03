@@ -30,13 +30,16 @@ app.use((req, res, next) => {
   //strict transport security (HSTS)
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');  
   //content security policy (CSP)
-  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self';");
+  res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
   //xcontent-type-options
   res.setHeader('X-Content-Type-Options', 'nosniff');
   //permissions policy
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), clipboard-read=(), clipboard-write=(), fullscreen=(), payment=(), interest-cohort=()');
+  //x-frame-options
+  res.setHeader('X-Frame-Options', 'DENY');
+  //cache control
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   
-
   next();
 });
 
@@ -55,6 +58,15 @@ app.use(function (req, res, next) {
 //routes
 app.use('/contacts', require('./routes/contacts'));
 
+// Health check endpoint for monitoring and testing
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Service is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 //error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -68,10 +80,24 @@ app.use((err, req, res, next) => {
 // start server
 db.initDatabase()
   .then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
+    
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received: closing HTTP server');
+      server.close(() => {
+        console.log('HTTP server closed');
+      });
+    });
+    
+    app.close = function(callback) {
+      server.close(callback);
+    };
   })
   .catch(err => {
     console.error('Failed to initialize database:', err);
   });
+
+module.exports = app;

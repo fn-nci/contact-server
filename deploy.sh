@@ -3,7 +3,7 @@
 CURRENT_INSTANCE=$(docker ps -a -q --filter ancestor="$IMAGE_NAME" --format="{{.ID}}")
 
 #if an instance does exist stop the instance
-if [ "$CURRENT_INSTANCE"]
+if [ "$CURRENT_INSTANCE" ]
 then
   docker rm $(docker stop $CURRENT_INSTANCE)
 fi
@@ -15,7 +15,7 @@ docker pull $IMAGE_NAME
 CONTAINER_EXISTS=$(docker ps -a | grep $CONTAINER_NAME)
 if [ "$CONTAINER_EXISTS" ]
 then
-  docker rm node_app
+  docker rm $CONTAINER_NAME
 fi
 
 #create a container called node_app that is available on port 8444 from our docker image

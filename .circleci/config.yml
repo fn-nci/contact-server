@@ -21,17 +21,17 @@ jobs:                                           #define jobs section
   build:
     working_directory: ~/contact-server         #set working dir in container to contact-server
     docker:
-      - image: circleci/node:10.16.3            #docker image
+      - image: cimg/node:20.9.0                 #updated to use a more recent Node.js LTS version
     steps:
       - checkout                                #step 1 - checkout code from repo
       - setup_remote_docker                     #next step - allow docker commands inside job
       - run:                                    #install specific version of npm
           name: update-npm
-          command: 'sudo npm install -g npm@5'  #global install of npm v 5
+          command: 'sudo npm install -g npm@latest'  #update to latest npm
       - restore_cache:                          #speed up build by restoring cached dependencies
           key: dependency-cache-{{ checksum "package-lock.json" }}
       - run:                                    #install npm dependencies
-          name: install-npm-wee
+          name: install-npm-dependencies
           command: npm install
       - save_cache:                             #save node_modules into cache for use in future builds
           key: dependency-cache-{{ checksum "package-lock.json" }}
@@ -57,20 +57,20 @@ jobs:                                           #define jobs section
           command: echo $SERVER > server.crt && echo $PRIVATE_KEY > privatekey.pem
       - run:                                    #create docker container for integration env
           name: build-docker-image-for-integration-environment
-          command: docker create -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
+          command: docker create -p 80:8080 -p 8443:8444 --name $CONTAINER_NAME $IMAGE_NAME
       - run:                                    #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
       - run:                                    #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
-      - run:                                    #run security scan using owasp zap against the container, putting no check cert just to be safe
-          name: run-zap-scan-against-container  #owasp no longer used by zap, y'all need to update your teaching material
-          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t zaproxy/zap-stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444
+      - run:                                    #run security scan using zap-baseline 
+          name: run-zap-scan-against-container
+          command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t owasp/zap2docker-stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I
   deploy:                                       #start of deploy job
     docker: 
-      - image:  circleci/node:10.16.3
+      - image: cimg/node:20.9.0                 #updated to use the same updated Node.js image
     steps:
       - run:
           name: deploy-application             #ssh into aws ec2 instance, export env variables and run deploy.sh to deploy app
-          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; export IMAGE_NAME=\"$IMAGE_NAME\"; export PRIVATE_KEY=\"$PRIVATE_KEY\"; export CONTAINER_NAME=\"$CONTAINER_NAME\"; rm -rf contact-server/; git clone https://github.com/fn-nci/contact-server.git; source contact-server/deploy.sh"
+          command: ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; export IMAGE_NAME=\"$IMAGE_NAME\"; export PRIVATE_KEY=\"$PRIVATE_KEY\"; export CONTAINER_NAME=\"$CONTAINER_NAME\"; rm -rf contact-server/; git clone https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git contact-server; source contact-server/deploy.sh"

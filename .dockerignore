@@ -1,3 +1,16 @@
-.git/
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+*.log
+.vscode
+.DS_Store
+coverage
+.circleci
+*.md
+*.test.js
+jest.config.js
+lab.docx
 privatekey.pem
 server.crt

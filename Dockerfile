@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 #set the base image for the container
-FROM circleci/node:10.16.3
+FROM node:20.9.0-slim
 
 #set environment variable to production
 ENV NODE_ENV=production
@@ -17,7 +17,7 @@ RUN groupadd -r nodeuser && useradd -r -g nodeuser -m nodeuser
 
 #copy the package.json and package-lock.json from host machine to the container's working directory
 #before changing the user to non-root
-COPY ["package.json", "package-lock.json*", "./"]
+COPY package.json package-lock.json* ./
 
 # having root user set ownership of app directory before switching
 RUN chown -R nodeuser:nodeuser /contact-server 
@@ -26,10 +26,13 @@ RUN chown -R nodeuser:nodeuser /contact-server
 USER nodeuser
 
 #install dependencies inside container as none root user so taking out the sudo
-RUN npm install
+RUN npm install --production
 
-#copy all content from current directory on host machine to the container
-COPY . .
+# Copy only necessary files (excluding .git, node_modules, etc.)
+COPY --chown=nodeuser:nodeuser . .
+
+# Expose ports the app will run on
+EXPOSE 8080 8444
 
 #default command to run on startup
 CMD [ "npm", "start" ]
