@@ -43,7 +43,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose ports the app will run on
-EXPOSE 8080 8443
+EXPOSE 8080 8444
 
 #default command to run on startup
 CMD [ "npm", "start" ]
