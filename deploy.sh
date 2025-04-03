@@ -53,8 +53,15 @@ docker create -p 80:8080 -p 8443:8443 --name $CONTAINER_NAME $IMAGE_NAME
 #write the private key to a file
 echo "Writing private key and certificate files..."
 mkdir -p ./certs
-echo "$PRIVATE_KEY" > ./certs/privatekey.pem
-echo "$SERVER" > ./certs/server.crt
+
+# Ensure certificates have proper BEGIN/END markers
+echo "-----BEGIN CERTIFICATE-----" > ./certs/server.crt
+echo "$SERVER" >> ./certs/server.crt
+echo "-----END CERTIFICATE-----" >> ./certs/server.crt
+
+echo "-----BEGIN PRIVATE KEY-----" > ./certs/privatekey.pem
+echo "$PRIVATE_KEY" >> ./certs/privatekey.pem
+echo "-----END PRIVATE KEY-----" >> ./certs/privatekey.pem
 
 # Display file contents for verification (first few lines)
 echo "Verifying certificate files:"
