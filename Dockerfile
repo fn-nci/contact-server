@@ -32,7 +32,7 @@ RUN npm install --production
 COPY --chown=nodeuser:nodeuser . .
 
 # Expose ports the app will run on
-EXPOSE 8080 8444
+EXPOSE 8444
 
 #default command to run on startup
 CMD [ "npm", "start" ]
