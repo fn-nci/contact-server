@@ -32,7 +32,7 @@ else
   echo "No existing container instance found."
 fi
 
-#pull down the instance from dockerhub
+#pull down the instance from dockerhub 
 echo "Pulling latest image from Docker Hub: $IMAGE_NAME"
 docker pull $IMAGE_NAME
 
