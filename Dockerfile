@@ -41,21 +41,26 @@ RUN npm install --production
 # Copy only necessary files (excluding .git, node_modules, etc.)
 COPY --chown=nodeuser:nodeuser . .
 
-# Create self-signed certificates for development/testing
+# Create self-signed certificates for development/testing and place them in /contact-server/certs
 USER root
-RUN mkdir -p /certs && \
+RUN mkdir -p /contact-server/certs && \
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /privatekey.pem -out /server.crt \
+    -keyout /contact-server/certs/privatekey.pem -out /contact-server/certs/server.crt \
     -subj "/CN=localhost" && \
     # Make sure the files have read permissions for all users 
-    chmod 644 /privatekey.pem /server.crt && \
+    chmod 644 /contact-server/certs/privatekey.pem /contact-server/certs/server.crt && \
     # Make nodeuser the owner
-    chown nodeuser:nodeuser /privatekey.pem /server.crt && \
+    chown nodeuser:nodeuser /contact-server/certs/privatekey.pem /contact-server/certs/server.crt && \
     # Make sure the parent directories are also accessible
-    chmod 755 $(dirname /privatekey.pem) $(dirname /server.crt) && \
+    chmod 755 /contact-server/certs && \
+    # Create symbolic links in the expected location 
+    ln -sf /contact-server/certs/privatekey.pem /privatekey.pem && \
+    ln -sf /contact-server/certs/server.crt /server.crt && \
+    # Make symlinks accessible to nodeuser 
+    chown -h nodeuser:nodeuser /privatekey.pem /server.crt && \
     # Verify permissions
-    ls -la /privatekey.pem /server.crt && \
-    cat /privatekey.pem | head -3 && cat /server.crt | head -3
+    ls -la /contact-server/certs/privatekey.pem /contact-server/certs/server.crt /privatekey.pem /server.crt && \
+    cat /contact-server/certs/privatekey.pem | head -3 && cat /contact-server/certs/server.crt | head -3
 
 # Switch back to nodeuser for running the application
 USER nodeuser

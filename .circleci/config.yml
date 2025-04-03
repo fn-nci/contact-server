@@ -83,28 +83,23 @@ jobs: #define jobs section
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: |
-            # Use docker cp with permission preservation
-            docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem
-            docker cp ./server.crt $CONTAINER_NAME:/server.crt
+            # Copy to the directory path where we know nodeuser has access
+            docker cp ./privatekey.pem $CONTAINER_NAME:/contact-server/certs/privatekey.pem
+            docker cp ./server.crt $CONTAINER_NAME:/contact-server/certs/server.crt
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
-      - run: #fix permissions inside the container after it starts
-          name: fix-certificate-permissions
-          command: |
-            docker exec $CONTAINER_NAME sh -c "chmod 644 /privatekey.pem /server.crt && chown nodeuser:nodeuser /privatekey.pem /server.crt"
-      - run: #wait for container to fully start
-          name: wait-for-container
-          command: sleep 10
-      - run: #verify certificate files
+      - run: #verify the certificates are working correctly
           name: verify-certificate-files
           command: |
             echo "Verifying certificate files in container..."
+            docker exec $CONTAINER_NAME ls -la /contact-server/certs/privatekey.pem /contact-server/certs/server.crt
+            docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/privatekey.pem | head -3" || echo "Failed to read private key"
+            docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/server.crt | head -3" || echo "Failed to read certificate"
+            # Also verify the symbolic links
             docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt
-            docker exec $CONTAINER_NAME bash -c "cat /privatekey.pem | head -3" || echo "Failed to read private key"
-            docker exec $CONTAINER_NAME bash -c "cat /server.crt | head -3" || echo "Failed to read certificate"
-      - run: #wait additional time for services to initialize
-          name: wait-for-services
+      - run: #wait for container to fully start
+          name: wait-for-container
           command: sleep 10
       - run: #check container logs
           name: check-container-logs

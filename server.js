@@ -116,6 +116,19 @@ function safeReadFile(filePath) {
   }
 }
 
+// Function to try multiple file paths and return the first successful read
+function tryReadFile(possiblePaths) {
+  for (const path of possiblePaths) {
+    console.log(`Attempting to read from: ${path}`);
+    const content = safeReadFile(path);
+    if (content) {
+      console.log(`Successfully read from: ${path}`);
+      return content;
+    }
+  }
+  return null;
+}
+
 // start server
 db.initDatabase()
   .then(() => {
@@ -127,41 +140,29 @@ db.initDatabase()
     // Create HTTPS server
     try {
       console.log('Attempting to set up HTTPS server...');
-      console.log('Checking for certificate files:');
       
-      // Check file existence
-      const privateKeyPath = '/privatekey.pem';
-      const certPath = '/server.crt';
+      // Define possible paths for certificate files
+      const possibleKeyPaths = [
+        '/contact-server/certs/privatekey.pem',
+        '/privatekey.pem'
+      ];
       
-      console.log('Private key exists:', fs.existsSync(privateKeyPath));
-      console.log('Certificate exists:', fs.existsSync(certPath));
+      const possibleCertPaths = [
+        '/contact-server/certs/server.crt',
+        '/server.crt'
+      ];
       
-      // Check file ownership and permissions
-      try {
-        const keyStats = fs.statSync(privateKeyPath);
-        const certStats = fs.statSync(certPath);
-        
-        console.log('Private key stats:', {
-          mode: keyStats.mode.toString(8),
-          uid: keyStats.uid,
-          gid: keyStats.gid
-        });
-        
-        console.log('Certificate stats:', {
-          mode: certStats.mode.toString(8),
-          uid: certStats.uid,
-          gid: certStats.gid
-        });
-      } catch (err) {
-        console.error('Error checking file stats:', err.message);
-      }
+      // Check all possible certificate locations
+      console.log('Checking all possible certificate locations:');
+      possibleKeyPaths.forEach(path => console.log(`Private key at ${path} exists:`, fs.existsSync(path)));
+      possibleCertPaths.forEach(path => console.log(`Certificate at ${path} exists:`, fs.existsSync(path)));
       
-      // Safely read the certificate files
-      const keyContent = safeReadFile(privateKeyPath);
-      const certContent = safeReadFile(certPath);
+      // Try to read certificate files from various locations
+      const keyContent = tryReadFile(possibleKeyPaths);
+      const certContent = tryReadFile(possibleCertPaths);
       
       if (!keyContent || !certContent) {
-        throw new Error('Failed to read certificate files');
+        throw new Error('Failed to read certificate files from any location');
       }
       
       console.log('Private key starts with:', keyContent.substring(0, 50));

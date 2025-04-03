@@ -80,23 +80,29 @@ head -3 ./certs/privatekey.pem || echo "Failed to read private key"
 echo "Certificate (first 3 lines):"
 head -3 ./certs/server.crt || echo "Failed to read certificate"
 
-#add the private key and cert to the container
-echo "Copying certificate files to container..."
-docker cp ./certs/privatekey.pem $CONTAINER_NAME:/privatekey.pem
-docker cp ./certs/server.crt $CONTAINER_NAME:/server.crt
+# Ensure the certs directory exists in the container
+echo "Ensuring certificates directory exists in container..."
+docker start $CONTAINER_NAME
+docker exec $CONTAINER_NAME mkdir -p /contact-server/certs
+docker stop $CONTAINER_NAME
 
-#start the node_app container
+# Copy certificate files to a location that nodeuser can access
+echo "Copying certificate files to container..."
+docker cp ./certs/privatekey.pem $CONTAINER_NAME:/contact-server/certs/privatekey.pem
+docker cp ./certs/server.crt $CONTAINER_NAME:/contact-server/certs/server.crt
+
+# Start the container
 echo "Starting container..."
 docker start $CONTAINER_NAME
 
-# Now that the container is started, fix permissions inside
-echo "Fixing certificate permissions inside container..."
-docker exec $CONTAINER_NAME sh -c "chmod 644 /privatekey.pem /server.crt && ls -la /privatekey.pem /server.crt"
-
-# Verify files were copied correctly
+# Verify certificates in the container
 echo "Verifying certificate files in container:"
-docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt || echo "Files not found in container"
-docker exec $CONTAINER_NAME bash -c "cat /privatekey.pem | head -3" || echo "Failed to read private key"
-docker exec $CONTAINER_NAME bash -c "cat /server.crt | head -3" || echo "Failed to read certificate"
+docker exec $CONTAINER_NAME ls -la /contact-server/certs/privatekey.pem /contact-server/certs/server.crt || echo "Files not found in container"
+docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/privatekey.pem | head -3" || echo "Failed to read private key"
+docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/server.crt | head -3" || echo "Failed to read certificate"
+
+# Create symbolic links if they don't exist
+echo "Creating symbolic links to certificates in standard location..."
+docker exec $CONTAINER_NAME bash -c "ln -sf /contact-server/certs/privatekey.pem /privatekey.pem; ln -sf /contact-server/certs/server.crt /server.crt"
 
 echo "=== Deployment completed successfully ==="
