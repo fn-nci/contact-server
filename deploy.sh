@@ -101,8 +101,5 @@ docker exec $CONTAINER_NAME ls -la /contact-server/certs/privatekey.pem /contact
 docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/privatekey.pem | head -3" || echo "Failed to read private key"
 docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/server.crt | head -3" || echo "Failed to read certificate"
 
-# Create symbolic links if they don't exist
-echo "Creating symbolic links to certificates in standard location..."
-docker exec $CONTAINER_NAME bash -c "ln -sf /contact-server/certs/privatekey.pem /privatekey.pem; ln -sf /contact-server/certs/server.crt /server.crt"
-
+# No need to create symbolic links - the server.js has been updated to look in both locations
 echo "=== Deployment completed successfully ==="
