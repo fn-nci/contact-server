@@ -40,7 +40,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(csrf({cookie:{key:'XSRF-TOKEN',path:'/', secure: true, httpOnly: true, sameSite: 'lax'}}));
 
 //middleware to set XSRF-TOKEN cookie w/ each response
 app.use(function (req, res, next) {
