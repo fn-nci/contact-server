@@ -1,79 +1,85 @@
 version: 2.1
 
-workflows:                                      #define workflow - sequence of jobs
+workflows: #define workflow - sequence of jobs
   version: 2
-  build:                                        #name of workflow
+  build: #name of workflow
     jobs:
-      - build:                                  #first job to run
+      - build: #first job to run
           filters:
             branches:
               only:
-                - main                          #job will only run on main branch
-      - deploy:                                 #second job to run 
+                - main #job will only run on main branch
+      - deploy: #second job to run
           filters:
             branches:
               only:
-                - main                          #job will only run on main branch
+                - main #job will only run on main branch
           requires:
-            - build                             #job will only run if the previous job, build, is succressful
+            - build #job will only run if the previous job, build, is succressful
 
-jobs:                                           #define jobs section
+jobs: #define jobs section
   build:
-    working_directory: ~/contact-server         #set working dir in container to contact-server
+    working_directory: ~/contact-server #set working dir in container to contact-server
     docker:
-      - image: cimg/node:20.17.0                #updated to use a version compatible with npm 11.2.0
+      - image: cimg/node:20.17.0 #updated to use a version compatible with npm 11.2.0
     steps:
-      - checkout                                #step 1 - checkout code from repo
-      - setup_remote_docker                     #next step - allow docker commands inside job
-      - run:                                    #install specific version of npm
+      - checkout #step 1 - checkout code from repo
+      - setup_remote_docker #next step - allow docker commands inside job
+      - run: #install specific version of npm
           name: update-npm
-          command: 'sudo npm install -g npm@10.5.0'  #use compatible npm version, not latest to avoid version issues
-      - restore_cache:                          #speed up build by restoring cached dependencies
+          command: 'sudo npm install -g npm@10.5.0' #use compatible npm version, not latest to avoid version issues
+      - restore_cache: #speed up build by restoring cached dependencies
           key: dependency-cache-{{ checksum "package-lock.json" }}
-      - run:                                    #install npm dependencies
+      - run: #install npm dependencies
           name: install-npm-dependencies
           command: npm install
-      - save_cache:                             #save node_modules into cache for use in future builds
+      - save_cache: #save node_modules into cache for use in future builds
           key: dependency-cache-{{ checksum "package-lock.json" }}
           paths:
             - ./node_modules
-      - run:                                    #audit installed npm packages for security vulnerabilities
+      - run: #audit installed npm packages for security vulnerabilities
           name: audit-packages
-          command: npm audit     
-      - run:                                    #run any unit tests defined in npm run test
+          command: npm audit
+      - run: #run any unit tests defined in npm run test
           name: test-run
           command: npm run test
-      - run:                                    #log into docker hub using environment variables stored in circleci
+      - run: #log into docker hub using environment variables stored in circleci
           name: docker-login
           command: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-      - run:                                    #build a docker image using the Dockerfile in the repo
+      - run: #build a docker image using the Dockerfile in the repo
           name: Build Docker Image
           command: docker build -t $IMAGE_NAME:latest .
-      - run:                                    #push built docker image to docker hub
+      - run: #push built docker image to docker hub
           name: Publish Docker Image
           command: docker push $IMAGE_NAME
-      - run:                                    #set environment variables and save values into files called server.crt and privatekey.pem
+      - run: #set environment variables and save values into files called server.crt and privatekey.pem
           name: set-environment-variables
           command: echo $SERVER > server.crt && echo $PRIVATE_KEY > privatekey.pem
-      - run:                                    #create docker container for integration env
+      - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
           command: docker create -p 80:8080 -p 8443:8444 --name $CONTAINER_NAME $IMAGE_NAME
-      - run:                                    #copy cert and private key into container
+      - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: docker cp ./privatekey.pem $CONTAINER_NAME:/privatekey.pem; docker cp ./server.crt $CONTAINER_NAME:/server.crt
-      - run:                                    #start the docker container
+      - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
-      - run:                                    #run security scan using zap-baseline 
+      - run: #run security scan using zap-baseline
           name: run-zap-scan-against-container
           command: CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I
-  deploy:                                       #start of deploy job
-    docker: 
-      - image: cimg/node:20.17.0                #updated to match build job version
+  deploy: #start of deploy job
+    docker:
+      - image: cimg/node:20.17.0 #updated to match build job version
     steps:
-      - checkout                               # Add checkout step to access local deploy.sh
+      - checkout # Add checkout step to access local deploy.sh
       - run:
-          name: deploy-application             #ssh into aws ec2 instance, export env variables and run deploy.sh to deploy app
+          name: deploy-application #ssh into aws ec2 instance, export env variables and run deploy.sh to deploy app
           command: |
             scp -o StrictHostKeyChecking=no deploy.sh $EC2_USERNAME@$EC2_PUBLIC_DNS:~/deploy.sh
-            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; export IMAGE_NAME=\"$IMAGE_NAME\"; export PRIVATE_KEY=\"$PRIVATE_KEY\"; export CONTAINER_NAME=\"$CONTAINER_NAME\"; rm -rf contact-server/; git clone git@github.com:$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git contact-server || git clone https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git contact-server; cd contact-server; bash ../deploy.sh"
+            ssh -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER=\"$SERVER\"; 
+            export IMAGE_NAME=\"$IMAGE_NAME\"; 
+            export PRIVATE_KEY=\"$PRIVATE_KEY\"; 
+            export CONTAINER_NAME=\"$CONTAINER_NAME\"; 
+            rm -rf contact-server/; 
+            git clone https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git contact-server; 
+            cd contact-server; bash ../deploy.sh"
