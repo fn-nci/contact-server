@@ -14,7 +14,7 @@ const setSecurityHeaders = (req, res, next) => {
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate'); //disable caching of sensitive data to prevent caching attacks
   //control sources from which resources can be loaded, only allows scripts, images, styles to be loaded from same origin (self)
   res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'");
-  res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), interest-cohort=()');  //adding permissions policy to stop access to sensitive apis
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), clipboard-read=(), clipboard-write=(), fullscreen=(), payment=()'); //adding permissions policy to stop access to sensitive apis
   res.set('Cross-Origin-Opener-Policy', 'same-origin'); //stop other sites accessing window
   res.set('Cross-Origin-Embedder-Policy', 'require-corp'); //prevent loading without specified permissions
   next();

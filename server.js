@@ -37,7 +37,8 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   
   //permissions policy
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=()');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), clipboard-read=(), clipboard-write=(), fullscreen=(), payment=()');
+
 
   next();
 });
