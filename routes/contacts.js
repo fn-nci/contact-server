@@ -13,7 +13,10 @@ const setSecurityHeaders = (req, res, next) => {
   res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');   //tell browser to only communicate over HTTPS, all subdomains, 1 year
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate'); //disable caching of sensitive data to prevent caching attacks
   //control sources from which resources can be loaded, only allows scripts, images, styles to be loaded from same origin (self)
-  res.set('Content-Security-Policy', "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'");
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'");
+  res.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), interest-cohort=()');  //adding permissions policy to stop access to sensitive apis
+  res.set('Cross-Origin-Opener-Policy', 'same-origin'); //stop other sites accessing window
+  res.set('Cross-Origin-Embedder-Policy', 'require-corp'); //prevent loading without specified permissions
   next();
 };
 
