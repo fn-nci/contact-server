@@ -14,7 +14,7 @@ const csrfProtection = csrf({ cookie: true });  // initialize CSRF protection mi
 
 //allow requests from frontend and allow cookies
 const corsOptions = {
-  origin: 'https://34.241.85.158:8443', //specify url where frontend deployed, updated port
+  origin: 'https://34.241.85.158:8444', // updated port
   credentials: true, //allow cookies (incl. CSRF tokens) to be sent with requests
 };
 
@@ -79,16 +79,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Function to read certificate files
-function readCertificateFile(filePath) {
-  try {
-    return fs.readFileSync(filePath, 'utf8');
-  } catch (error) {
-    console.error(`Error reading file ${filePath}:`, error.message);
-    return null;
-  }
-}
-
 // start server
 db.initDatabase()
   .then(() => {
@@ -101,33 +91,13 @@ db.initDatabase()
     try {
       console.log('Setting up HTTPS server...');
       
-      // Define possible paths for certificate files
-      const possibleKeyPaths = [
-        '/contact-server/certs/privatekey.pem',
-        '/privatekey.pem'
-      ];
+      // Define certificate file paths
+      const keyPath = '/contact-server/certs/privatekey.pem';
+      const certPath = '/contact-server/certs/server.crt';
       
-      const possibleCertPaths = [
-        '/contact-server/certs/server.crt',
-        '/server.crt'
-      ];
-      
-      // Try to read certificate files from various locations
-      let keyContent = null;
-      for (const path of possibleKeyPaths) {
-        keyContent = readCertificateFile(path);
-        if (keyContent) break;
-      }
-      
-      let certContent = null;
-      for (const path of possibleCertPaths) {
-        certContent = readCertificateFile(path);
-        if (certContent) break;
-      }
-      
-      if (!keyContent || !certContent) {
-        throw new Error('Failed to read certificate files');
-      }
+      // Read certificate files
+      const keyContent = fs.readFileSync(keyPath, 'utf8');
+      const certContent = fs.readFileSync(certPath, 'utf8');
       
       const httpsOptions = {
         key: keyContent,

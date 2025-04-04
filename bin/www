@@ -67,58 +67,53 @@ function onListening() {
 var fs = require('fs');
 var https = require('https');
 var port = normalizePort(process.env.PORT || '8080');
-var https_port    =   process.env.PORT_HTTPS || 8443;
+var https_port = process.env.PORT_HTTPS || 8444; // Updated port to 8444
 var options = {}
 
 if(process.env.ENV !== "DEV") {
-  var privatekey = fs.readFileSync('/home/ubuntu/privatekey.pem', "utf8");
-  console.log(typeof privatekey)
-  var cert = fs.readFileSync('/home/ubuntu/server.crt', "utf8");
-  var header = "-----BEGIN PRIVATE KEY-----"
-  var footer = "-----END PRIVATE KEY-----"
-  console.log(privatekey.split(header))
-  privatekey= privatekey.split(header)[1]
-  privatekey = privatekey.split(footer)[0]
-  privatekey = header + "\n" + privatekey.replace(/ /g, "\n") + footer+"\n"
+  try {
+    // Use certificates from the new location
+    var privatekey = fs.readFileSync('/contact-server/certs/privatekey.pem', "utf8");
+    var cert = fs.readFileSync('/contact-server/certs/server.crt', "utf8");
+    
+    var options = {
+      key: privatekey,
+      cert: cert
+    };
+    
+    app.set("port", https_port);
 
-  console.log(privatekey)
+    /*
+    * Create HTTPS server.
+    */
+    var server = https.createServer(options, app).listen(https_port, function () {
+      console.log('Magic happens on port ' + https_port);
+    });
 
+    /**
+    * Listen on provided port, on all network interfaces.
+    */
 
-  var header = "-----BEGIN CERTIFICATE-----"
-  var footer = "-----END CERTIFICATE-----"
-  cert= cert.split(header)[1]
-  cert = cert.split(footer)[0]
-  cert = header + "\n" + cert.replace(/ /g, "\n") + footer+"\n"
+    server.on('error', onError);
+    server.on('listening', onListening);
 
-  var options = {
-    key  : privatekey,
-    cert : cert
-  };
-  app.set("port",https_port);
-
-  /*
-  ° Create HTTPS server.
-  */
-  var server = https.createServer(options, app).listen(https_port, function () {
-  console.log('Magic happens on port ' + https_port);
-  });
-
-  /**
-  * Listen on provided port, on all network interfaces.
-  */
-
-  server.on('error', onError);
-  server.on('listening', onListening);
-
-  // Redirect from http port to https
-  http.createServer(function (req, res) {
-    res.writeHead(301, { "Location": "https://" + req.headers['host'].replace(port,https_port) + req.url });
-    console.log("http requet, will go to >> ");
-    console.log("https://" + req.headers['host'].replace(port,https_port) + req.url );
-    res.end();
-  }).listen(port);
+    // Redirect from http port to https
+    http.createServer(function (req, res) {
+      res.writeHead(301, { "Location": "https://" + req.headers['host'].replace(port, https_port) + req.url });
+      console.log("http request, will go to >> ");
+      console.log("https://" + req.headers['host'].replace(port, https_port) + req.url);
+      res.end();
+    }).listen(port);
+  } catch (error) {
+    console.error('Failed to read certificate files:', error.message);
+    // Fall back to HTTP if certificate loading fails
+    console.log('Falling back to HTTP server');
+    var server = http.createServer(app);
+    server.listen(port);
+    server.on('error', onError);
+    server.on('listening', onListening);
+  }
 } else {
-
   var server = http.createServer(app);
 
   /**
@@ -128,5 +123,4 @@ if(process.env.ENV !== "DEV") {
   server.listen(port);
   server.on('error', onError);
   server.on('listening', onListening);
-
 }

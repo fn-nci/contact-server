@@ -61,7 +61,7 @@ jobs: #define jobs section
               -keyout ./certs/privatekey.pem -out ./certs/server.crt \
               -subj "/CN=localhost"
             
-            # Copy to expected locations
+            # Copy to expected locations for container copy
             cp ./certs/privatekey.pem privatekey.pem
             cp ./certs/server.crt server.crt
             chmod 644 privatekey.pem server.crt
@@ -76,15 +76,14 @@ jobs: #define jobs section
       - run: #start the docker container
           name: start-docker-container
           command: docker start $CONTAINER_NAME
-      - run: #verify the certificates are working correctly
+      - run: #verify the certificates exist in the certs directory
           name: verify-certificate-files
           command: |
             echo "Verifying certificate files in container..."
-            docker exec $CONTAINER_NAME ls -la /contact-server/certs/privatekey.pem /contact-server/certs/server.crt
-            docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/privatekey.pem | head -3" || echo "Failed to read private key"
-            docker exec $CONTAINER_NAME bash -c "cat /contact-server/certs/server.crt | head -3" || echo "Failed to read certificate"
-            # Also verify the symbolic links
-            docker exec $CONTAINER_NAME ls -la /privatekey.pem /server.crt
+            # Check only the /contact-server/certs/ directory
+            docker exec $CONTAINER_NAME bash -c "ls -la /contact-server/certs/privatekey.pem /contact-server/certs/server.crt"
+            docker exec $CONTAINER_NAME bash -c "head -3 /contact-server/certs/privatekey.pem" || echo "Failed to read private key"
+            docker exec $CONTAINER_NAME bash -c "head -3 /contact-server/certs/server.crt" || echo "Failed to read certificate"
       - run: #wait for container to fully start
           name: wait-for-container
           command: sleep 10

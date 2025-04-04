@@ -47,21 +47,13 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout ./certs/privatekey.pem -out ./certs/server.crt \
   -subj "/CN=localhost"
 
-# Ensure proper permissions
-chmod 644 ./certs/privatekey.pem ./certs/server.crt
-
-# Ensure certs directory exists in container
+# Start the container first so we can copy files to it
+echo "Starting container..."
 docker start $CONTAINER_NAME
-docker exec $CONTAINER_NAME mkdir -p /contact-server/certs
-docker stop $CONTAINER_NAME
 
 # Copy certificate files
 echo "Copying certificate files to container..."
 docker cp ./certs/privatekey.pem $CONTAINER_NAME:/contact-server/certs/privatekey.pem
 docker cp ./certs/server.crt $CONTAINER_NAME:/contact-server/certs/server.crt
-
-# Start the container
-echo "Starting container..."
-docker start $CONTAINER_NAME
 
 echo "=== Deployment completed successfully ==="
