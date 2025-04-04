@@ -14,7 +14,7 @@ const csrfProtection = csrf({ cookie: true });  // initialize CSRF protection mi
 
 //allow requests from frontend and allow cookies
 const corsOptions = {
-  origin: 'https://34.241.85.158:8444', // updated port
+  origin: 'https://34.241.85.158:8443', // updated port
   credentials: true, //allow cookies (incl. CSRF tokens) to be sent with requests
 };
 
