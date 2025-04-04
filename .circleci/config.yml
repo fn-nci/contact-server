@@ -54,14 +54,14 @@ jobs: #define jobs section
           command: |
             # Create certificates directory
             mkdir -p ./certs
-
+            
             # Use environment variables for certificates
             if [ -n "$PRIVATE_KEY_PEM" ] && [ -n "$SERVER_CERT" ]; then
               echo "Using certificates from environment variables"
-              echo "$PRIVATE_KEY_PEM"
-              echo "$SERVER_CERT"
-              echo "$PRIVATE_KEY_PEM" > ./certs/privatekey.pem
-              echo "$SERVER_CERT" > ./certs/server.crt
+              
+              # Decode Base64-encoded environment variables
+              echo "$PRIVATE_KEY_PEM" | base64 -d > ./certs/privatekey.pem
+              echo "$SERVER_CERT" | base64 -d > ./certs/server.crt
             else
               echo "Environment variables not set, generating self-signed certificates"
               # Install OpenSSL for certificate generation
@@ -72,12 +72,12 @@ jobs: #define jobs section
                 -keyout ./certs/privatekey.pem -out ./certs/server.crt \
                 -subj "/CN=localhost"
             fi
-
+            
             # Copy to expected locations for container copy
             cp ./certs/privatekey.pem privatekey.pem
             cp ./certs/server.crt server.crt
             chmod 644 privatekey.pem server.crt
-
+            
             # Verify certificate format
             echo "Verifying certificate format:"
             head -1 ./certs/privatekey.pem
