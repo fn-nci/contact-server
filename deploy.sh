@@ -43,10 +43,10 @@ echo "Setting up certificate files..."
 mkdir -p ./certs
 
 # Use environment variables for certificates if available
-if [ -n "${PRIVATE_KEY:-}" ] && [ -n "${SERVER:-}" ]; then
+if [ -n "${PRIVATE_KEY_PEM:-}" ] && [ -n "${SERVER_CERT:-}" ]; then
   echo "Using certificates from environment variables"
-  echo "$PRIVATE_KEY" > ./certs/privatekey.pem
-  echo "$SERVER" > ./certs/server.crt
+  echo "$PRIVATE_KEY_PEM" > ./certs/privatekey.pem
+  echo "$SERVER_CERT" > ./certs/server.crt
 else
   echo "Environment variables not set, generating self-signed certificates"
   # Create self-signed certificate
