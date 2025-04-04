@@ -46,8 +46,8 @@ mkdir -p ./certs
 echo "Using certificates from environment variables"
 
 # Decode Base64-encoded environment variables
-echo "$PK" | base64 -d > ./certs/privatekey.pem
-echo "$CRT" | base64 -d > ./certs/server.crt
+echo "$PRIVATE_64" | base64 -d > ./certs/privatekey.pem
+echo "$SERVER_64" | base64 -d > ./certs/server.crt
 
 # Start the container first so we can copy files to it
 echo "Starting container..."

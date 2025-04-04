@@ -59,8 +59,8 @@ jobs: #define jobs section
             echo "Using certificates from environment variables"
             
             # Decode Base64-encoded environment variables
-            echo "$PK" | base64 -d > ./certs/privatekey.pem
-            echo "$CRT" | base64 -d > ./certs/server.crt
+            echo "$PRIVATE_64" | base64 -d > ./certs/privatekey.pem
+            echo "$SERVER_64" | base64 -d > ./certs/server.crt
             
             # Copy to expected locations for container copy
             cp ./certs/privatekey.pem privatekey.pem
@@ -123,4 +123,4 @@ jobs: #define jobs section
       - checkout # Add checkout step to access local deploy.sh
       - run:
           name: deploy-application #ssh into aws ec2 instance, export env variables and run deploy.sh to deploy app
-          command: ssh -p 5454 -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export CRT=\"$CRT\"; export IMAGE_NAME=\"$IMAGE_NAME\"; export PK=\"$PK\"; export CONTAINER_NAME=\"$CONTAINER_NAME\"; rm -rf ~/contact-server/; git clone https://github.com/fn-nci/contact-server.git; source contact-server/deploy.sh;"
+          command: ssh -p 5454 -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_PUBLIC_DNS "export SERVER_64=\"$SERVER_64\"; export IMAGE_NAME=\"$IMAGE_NAME\"; export PRIVATE_64=\"$PRIVATE_64\"; export CONTAINER_NAME=\"$CONTAINER_NAME\"; rm -rf ~/contact-server/; git clone https://github.com/fn-nci/contact-server.git; source contact-server/deploy.sh;"
