@@ -10,11 +10,24 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 8444;
-const csrfProtection = csrf({ cookie: true });  // initialize CSRF protection middleware w/ cookie-based tokens
+const csrfProtection = csrf({ 
+  cookie: true,
+  value: (req) => {
+    // Check for token in headers (preferred for AJAX)
+    const csrfHeader = req.headers['csrf-token'] || req.headers['x-csrf-token'];
+    if (csrfHeader) {
+      return csrfHeader;
+    }
+    // Fallback to default behavior (cookie)
+    return req.csrfToken;
+  }
+});  // initialize CSRF protection middleware w/ cookie-based tokens
 
 //allow requests from frontend and allow cookies
 const corsOptions = {
-  origin: 'https://34.241.85.158:8443', // updated port
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://34.241.85.158:8443'  // Use specific origin in production
+    : true,  // Allow any origin in development
   credentials: true, //allow cookies (incl. CSRF tokens) to be sent with requests
 };
 
@@ -50,8 +63,8 @@ app.use((req, res, next) => {
 app.use(function (req, res, next) {
   res.cookie('XSRF-TOKEN', req.csrfToken(), {
       secure: process.env.NODE_ENV === 'production',  //set secure cookies in production only
-      httpOnly: true,  //cookies can't be accessed by JavaScript (client-side)
-      sameSite: 'lax', //ensure  cookie is sent with cross-origin requests
+      httpOnly: false,  // Allow JavaScript to access this cookie
+      sameSite: 'lax', //ensure cookie is sent with cross-origin requests
   });
   res.locals.csrftoken = req.csrfToken(); //make CSRF token available in templates, if needed
   next();
@@ -67,6 +80,11 @@ app.get('/health', (req, res) => {
     message: 'Service is running',
     timestamp: new Date().toISOString()
   });
+});
+
+// Add a CSRF token endpoint for the frontend
+app.get('/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
 });
 
 //error handling middleware

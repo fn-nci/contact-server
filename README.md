@@ -60,4 +60,27 @@ A Node.js Express backend server with SQLite database for the Contact Management
 - `PORT` - Port to run the server on (default: 4000)
 - `NODE_ENV` - Environment mode (development, production) 
 
+## CSRF Protection
+
+This server implements CSRF protection. Frontend applications need to:
+
+1. Make sure to include credentials in all requests:
+   ```javascript
+   fetch('https://api-url/contacts', {
+     method: 'POST',
+     credentials: 'include',  // <-- Important for cookies
+     headers: {
+       'Content-Type': 'application/json',
+       'CSRF-Token': csrfToken // <-- Add the CSRF token
+     },
+     body: JSON.stringify(data)
+   })
+   ```
+
+2. Obtain the CSRF token via either:
+   - Reading the `XSRF-TOKEN` cookie value using JavaScript
+   - Making a GET request to `/csrf-token` endpoint, which returns `{ csrfToken: "..." }`
+
+3. Include the token in all POST, PUT, DELETE requests with the header `CSRF-Token`
+
 Thank you for reading our code!

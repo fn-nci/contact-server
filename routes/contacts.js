@@ -66,7 +66,7 @@ router.get('/:id', async (req, res, next) => {
 });
 
 //post new contact - sanitizing input
-router.post('/', csrfProtection, sanitizeInput, async (req, res, next) => {
+router.post('/', sanitizeInput, async (req, res, next) => {
   try {
     const { firstname, lastname, email, homephone, mobile, address, birthday } = req.body;
     //checking for required fields, returning error if they are blank
@@ -87,7 +87,7 @@ router.post('/', csrfProtection, sanitizeInput, async (req, res, next) => {
 });
 
 //put/update a contact - with sanitized input
-router.put('/:id', csrfProtection, sanitizeInput, async (req, res, next) => {
+router.put('/:id', sanitizeInput, async (req, res, next) => {
   try {
     const { firstname, lastname, email, homephone, mobile, address, birthday } = req.body;
     const contactId = req.params.id;
@@ -116,7 +116,7 @@ router.put('/:id', csrfProtection, sanitizeInput, async (req, res, next) => {
 });
 
 //delete a contact
-router.delete('/:id', csrfProtection, async (req, res, next) => {
+router.delete('/:id', async (req, res, next) => {
   try {
     const contactId = req.params.id;
     const existingContact = await db.get('SELECT * FROM contacts WHERE id = ?', [contactId]);
