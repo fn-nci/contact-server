@@ -12,13 +12,10 @@ WORKDIR /contact-server
 # make sure user is root to run groupadd
 USER root
 
-# Install diagnostic tools and dependencies
+# Install only essential dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    net-tools \
-    netcat-openbsd \
-    procps \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -41,26 +38,15 @@ RUN npm install --production
 # Copy only necessary files (excluding .git, node_modules, etc.)
 COPY --chown=nodeuser:nodeuser . .
 
-# Create self-signed certificates for development/testing and place them in /contact-server/certs
+# Create self-signed certificates
 USER root
 RUN mkdir -p /contact-server/certs && \
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /contact-server/certs/privatekey.pem -out /contact-server/certs/server.crt \
     -subj "/CN=localhost" && \
-    # Make sure the files have read permissions for all users 
     chmod 644 /contact-server/certs/privatekey.pem /contact-server/certs/server.crt && \
-    # Make nodeuser the owner
     chown nodeuser:nodeuser /contact-server/certs/privatekey.pem /contact-server/certs/server.crt && \
-    # Make sure the parent directories are also accessible
-    chmod 755 /contact-server/certs && \
-    # Create symbolic links in the expected location 
-    ln -sf /contact-server/certs/privatekey.pem /privatekey.pem && \
-    ln -sf /contact-server/certs/server.crt /server.crt && \
-    # Make symlinks accessible to nodeuser 
-    chown -h nodeuser:nodeuser /privatekey.pem /server.crt && \
-    # Verify permissions
-    ls -la /contact-server/certs/privatekey.pem /contact-server/certs/server.crt /privatekey.pem /server.crt && \
-    cat /contact-server/certs/privatekey.pem | head -3 && cat /contact-server/certs/server.crt | head -3
+    chmod 755 /contact-server/certs
 
 # Switch back to nodeuser for running the application
 USER nodeuser

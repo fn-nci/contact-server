@@ -79,54 +79,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Helper function to safely read a file with proper error handling
-function safeReadFile(filePath) {
+// Function to read certificate files
+function readCertificateFile(filePath) {
   try {
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.error(`File does not exist: ${filePath}`);
-      return null;
-    }
-    
-    // Check file permissions
-    try {
-      const stats = fs.statSync(filePath);
-      console.log(`File permissions for ${filePath}:`, {
-        mode: stats.mode.toString(8),
-        uid: stats.uid,
-        gid: stats.gid,
-        readable: Boolean(stats.mode & fs.constants.R_OK)
-      });
-    } catch (statErr) {
-      console.error(`Could not check file permissions: ${statErr.message}`);
-    }
-    
-    // Try to read the file
     return fs.readFileSync(filePath, 'utf8');
   } catch (error) {
     console.error(`Error reading file ${filePath}:`, error.message);
-    // Print current user and process information
-    try {
-      console.error('Process running as:', process.getuid && process.getuid());
-      console.error('Process groups:', process.getgroups && process.getgroups());
-    } catch (e) {
-      console.error('Could not get process user info:', e.message);
-    }
     return null;
   }
-}
-
-// Function to try multiple file paths and return the first successful read
-function tryReadFile(possiblePaths) {
-  for (const path of possiblePaths) {
-    console.log(`Attempting to read from: ${path}`);
-    const content = safeReadFile(path);
-    if (content) {
-      console.log(`Successfully read from: ${path}`);
-      return content;
-    }
-  }
-  return null;
 }
 
 // start server
@@ -139,7 +99,7 @@ db.initDatabase()
     
     // Create HTTPS server
     try {
-      console.log('Attempting to set up HTTPS server...');
+      console.log('Setting up HTTPS server...');
       
       // Define possible paths for certificate files
       const possibleKeyPaths = [
@@ -152,28 +112,27 @@ db.initDatabase()
         '/server.crt'
       ];
       
-      // Check all possible certificate locations
-      console.log('Checking all possible certificate locations:');
-      possibleKeyPaths.forEach(path => console.log(`Private key at ${path} exists:`, fs.existsSync(path)));
-      possibleCertPaths.forEach(path => console.log(`Certificate at ${path} exists:`, fs.existsSync(path)));
-      
       // Try to read certificate files from various locations
-      const keyContent = tryReadFile(possibleKeyPaths);
-      const certContent = tryReadFile(possibleCertPaths);
-      
-      if (!keyContent || !certContent) {
-        throw new Error('Failed to read certificate files from any location');
+      let keyContent = null;
+      for (const path of possibleKeyPaths) {
+        keyContent = readCertificateFile(path);
+        if (keyContent) break;
       }
       
-      console.log('Private key starts with:', keyContent.substring(0, 50));
-      console.log('Certificate starts with:', certContent.substring(0, 50));
+      let certContent = null;
+      for (const path of possibleCertPaths) {
+        certContent = readCertificateFile(path);
+        if (certContent) break;
+      }
+      
+      if (!keyContent || !certContent) {
+        throw new Error('Failed to read certificate files');
+      }
       
       const httpsOptions = {
         key: keyContent,
         cert: certContent
       };
-      
-      console.log('SSL certificate files loaded successfully');
       
       const httpsServer = https.createServer(httpsOptions, app).listen(8444, '0.0.0.0', () => {
         console.log(`HTTPS server running on port 8444`);
@@ -192,10 +151,7 @@ db.initDatabase()
         });
       };
     } catch (error) {
-      console.error('Failed to start HTTPS server:', error);
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
-      // Fall back to HTTP only in case of HTTPS setup failure
+      console.error('Failed to start HTTPS server:', error.message);
     }
   })
   .catch(err => {

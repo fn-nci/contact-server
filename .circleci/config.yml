@@ -52,38 +52,25 @@ jobs: #define jobs section
       - run: #set environment variables and save values into files called server.crt and privatekey.pem with proper formatting
           name: set-environment-variables
           command: |
-            echo "Creating certificate files..."
-
             # Generate self-signed certificates for testing
             mkdir -p ./certs
-            echo "Installing OpenSSL for certificate generation"
             sudo apt-get update && sudo apt-get install -y openssl
-
+            
             # Create self-signed certificate
-            echo "Generating self-signed certificate..."
             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
               -keyout ./certs/privatekey.pem -out ./certs/server.crt \
               -subj "/CN=localhost"
             
-            # Copy to expected locations with correct permissions
+            # Copy to expected locations
             cp ./certs/privatekey.pem privatekey.pem
             cp ./certs/server.crt server.crt
             chmod 644 privatekey.pem server.crt
-            
-            # Verify the files have the correct format and permissions
-            echo "Verifying certificate files format:"
-            ls -la privatekey.pem server.crt
-            head -3 server.crt
-            tail -3 server.crt
-            head -3 privatekey.pem
-            tail -3 privatekey.pem
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
           command: docker create -p 8080:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
       - run: #copy cert and private key into container
           name: copy-server-cert-and-private-key-across
           command: |
-            # Copy to the directory path where we know nodeuser has access
             docker cp ./privatekey.pem $CONTAINER_NAME:/contact-server/certs/privatekey.pem
             docker cp ./server.crt $CONTAINER_NAME:/contact-server/certs/server.crt
       - run: #start the docker container
@@ -108,9 +95,6 @@ jobs: #define jobs section
           name: verify-https
           command: |
             CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-            echo "Container IP: $CONTAINER_IP"
-            echo "Checking ports in container..."
-            docker exec $CONTAINER_NAME bash -c "netstat -tuln || echo netstat not available"
             echo "Testing HTTP connection..."
             docker run --rm curlimages/curl:7.78.0 curl -v http://$CONTAINER_IP:8080/health || echo "HTTP not responding"
             echo "Testing HTTPS connection..."
@@ -120,7 +104,6 @@ jobs: #define jobs section
           command: |
             CONTAINER_IP=$(docker inspect $CONTAINER_NAME --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
             echo "Running ZAP scan against HTTPS server at $CONTAINER_IP:8444"
-            # Try HTTP first if HTTPS is not working
             if docker run --rm curlimages/curl:7.78.0 -s -k https://$CONTAINER_IP:8444/health > /dev/null; then
               echo "HTTPS connection successful, proceeding with HTTPS scan"
               docker run -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://$CONTAINER_IP:8444 -P 8444 -I -d --autooff -z "-config certificate.use=true -config certificate.ignore=true"
