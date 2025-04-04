@@ -42,20 +42,10 @@ docker create -p 80:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
 echo "Setting up certificate files..."
 mkdir -p ./certs
 
-# Use environment variables for certificates if available
-if [ -n "${PRIVATE:-}" ] && [ -n "${SERVER:-}" ]; then
-  echo "Using certificates from environment variables"
-  
-  # Decode Base64-encoded environment variables
-  echo "$PRIVATE" | base64 -d > ./certs/privatekey.pem
-  echo "$SERVER" | base64 -d > ./certs/server.crt
-else
-  echo "Environment variables not set, generating self-signed certificates"
-  # Create self-signed certificate
-  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout ./certs/privatekey.pem -out ./certs/server.crt \
-    -subj "/CN=localhost"
-fi
+# Use environment variables for certificates
+echo "Using certificates from environment variables"
+echo "$PRIVATE" > ./certs/privatekey.pem
+echo "$SERVER" > ./certs/server.crt
 
 # Start the container first so we can copy files to it
 echo "Starting container..."
