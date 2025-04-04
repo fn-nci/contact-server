@@ -38,14 +38,22 @@ fi
 echo "Creating new container..."
 docker create -p 80:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
 
-# Generate certificates
-echo "Creating certificate files..."
+# Generate or use provided certificates
+echo "Setting up certificate files..."
 mkdir -p ./certs
 
-# Create self-signed certificate
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout ./certs/privatekey.pem -out ./certs/server.crt \
-  -subj "/CN=localhost"
+# Use environment variables for certificates if available
+if [ -n "${PRIVATE_KEY:-}" ] && [ -n "${SERVER:-}" ]; then
+  echo "Using certificates from environment variables"
+  echo "$PRIVATE_KEY" > ./certs/privatekey.pem
+  echo "$SERVER" > ./certs/server.crt
+else
+  echo "Environment variables not set, generating self-signed certificates"
+  # Create self-signed certificate
+  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout ./certs/privatekey.pem -out ./certs/server.crt \
+    -subj "/CN=localhost"
+fi
 
 # Start the container first so we can copy files to it
 echo "Starting container..."

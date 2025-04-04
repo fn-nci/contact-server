@@ -52,19 +52,34 @@ jobs: #define jobs section
       - run: #set environment variables and save values into files called server.crt and privatekey.pem with proper formatting
           name: set-environment-variables
           command: |
-            # Generate self-signed certificates for testing
+            # Create certificates directory
             mkdir -p ./certs
-            sudo apt-get update && sudo apt-get install -y openssl
             
-            # Create self-signed certificate
-            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-              -keyout ./certs/privatekey.pem -out ./certs/server.crt \
-              -subj "/CN=localhost"
+            # Use environment variables for certificates
+            if [ -n "$PRIVATE_KEY" ] && [ -n "$SERVER" ]; then
+              echo "Using certificates from environment variables"
+              echo "$PRIVATE_KEY" > ./certs/privatekey.pem
+              echo "$SERVER" > ./certs/server.crt
+            else
+              echo "Environment variables not set, generating self-signed certificates"
+              # Install OpenSSL for certificate generation
+              sudo apt-get update && sudo apt-get install -y openssl
+              
+              # Create self-signed certificate
+              openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout ./certs/privatekey.pem -out ./certs/server.crt \
+                -subj "/CN=localhost"
+            fi
             
             # Copy to expected locations for container copy
             cp ./certs/privatekey.pem privatekey.pem
             cp ./certs/server.crt server.crt
             chmod 644 privatekey.pem server.crt
+            
+            # Verify certificate format
+            echo "Verifying certificate format:"
+            head -1 ./certs/privatekey.pem
+            head -1 ./certs/server.crt
       - run: #create docker container for integration env
           name: build-docker-image-for-integration-environment
           command: docker create -p 8080:8080 -p 8444:8444 --name $CONTAINER_NAME $IMAGE_NAME
